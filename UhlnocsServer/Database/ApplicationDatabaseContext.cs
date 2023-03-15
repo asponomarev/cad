@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using UhlnocsServer.Models;
 using UhlnocsServer.Users;
 using static UhlnocsServer.Utils.PropertiesHolder;
 
@@ -12,6 +13,8 @@ namespace UhlnocsServer.Database
                                                           $"Username={DatabaseSettings["username"]};" +
                                                           $"Password={DatabaseSettings["password"]}";
         public DbSet<User> Users { get; set; } = null!;
+
+        public DbSet<Model> Models { get; set; } = null!;
 
         public ApplicationDatabaseContext()
         {

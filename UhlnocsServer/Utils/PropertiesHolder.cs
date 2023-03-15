@@ -18,5 +18,10 @@
                                                                   .SetBasePath(PropertiesDirectory)
                                                                   .AddJsonFile("adminSettings.json", false, true)
                                                                   .Build();
+
+        public static readonly IConfiguration ModelSettings = new ConfigurationBuilder()
+                                                                  .SetBasePath(PropertiesDirectory)
+                                                                  .AddJsonFile("modelSettings.json", false, true)
+                                                                  .Build();
     }
 }
