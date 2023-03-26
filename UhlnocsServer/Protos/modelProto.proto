@@ -17,9 +17,9 @@ service ModelServiceProto {
 
   rpc DownloadModelArchive (ModelIdRequest) returns (stream ArchivePartReply);
 
-  rpc GetParameterToModels (ModelEmptyMessage) returns (ParameterToModelsReply);
+  rpc GetParametersWithModels (ModelEmptyMessage) returns (ParametersWithModelsReply);
 
-  rpc GetCharacteristicToModels (ModelEmptyMessage) returns (CharacteristicToModelsReply);
+  rpc GetCharacteristicsWithModels (ModelEmptyMessage) returns (CharacteristicsWithModelsReply);
 }
 
 message ModelEmptyMessage {
@@ -45,10 +45,10 @@ message ArchivePartRequest {
 	string modelId = 3;
 }
 
-message ParameterToModelsReply {
-	string parameterToModelsJson = 1;
+message ParametersWithModelsReply {
+	string parametersWithModelsJson = 1;
 }
 
-message CharacteristicToModelsReply {
-	string characteristicToModelsJson = 1;
+message CharacteristicsWithModelsReply {
+	string characteristicsWithModelsJson = 1;
 }

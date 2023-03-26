@@ -1,13 +1,12 @@
 ﻿using Google.Protobuf;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.IO.Compression;
-using System.Reflection;
 using System.Text.Json;
 using UhlnocsServer.Database;
 using UhlnocsServer.Models;
-using UhlnocsServer.Models.Properties.Characteristics.Infos;
-using UhlnocsServer.Models.Properties.Parameters.Infos;
+using UhlnocsServer.Models.Properties;
+using UhlnocsServer.Models.Properties.Characteristics;
+using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Users;
 using static UhlnocsServer.Utils.ExceptionUtils;
 using static UhlnocsServer.Utils.PropertiesHolder;
@@ -24,18 +23,18 @@ namespace UhlnocsServer.Services
         public readonly string ModelsDirectory = ModelSettings.GetValue<string>("modelsDirectory");
         public readonly int BufferSize = ModelSettings.GetValue<int>("modelServiceBufferSize");
 
-        public volatile Dictionary<string, List<string>> ParameterToModels = new();
-        public volatile Dictionary<string, List<string>> CharacteristicToModels = new();
+        public volatile Dictionary<string, ParameterWithModels> ParametersWithModels = new();
+        public volatile Dictionary<string, CharacteristicWithModels> CharacteristicsWithModels = new();
 
         public ModelService(ILogger<UserService> logger, IRepository<Model> modelsRepository, UserService usersService)
         {
             Logger = logger;
             ModelsRepository = modelsRepository;
             UsersService = usersService;
-            SetPropertyToModelsDictionaries();
+            SetPropertiesInfoWithModels();
         }
 
-        private void SetPropertyToModelsDictionaries()
+        private void SetPropertiesInfoWithModels()
         {
             List<Model> models = new();
             try
@@ -47,59 +46,63 @@ namespace UhlnocsServer.Services
                 ThrowInternalException(exception);
             }
 
-            Dictionary<string, List<string>> newParameterToModels = new();
-            Dictionary<string, List<string>> newCharacteristicToModels = new();
+            Dictionary<string, ParameterWithModels> newParametersWithModels = new();
+            Dictionary<string, CharacteristicWithModels> newCharacteristicsWithModels = new();
             foreach (Model model in models)
             {
                 ModelConfiguration configuration = ModelConfiguration.FromJsonDocument(model.Configuration);
 
-                foreach (ModelParameterInfo parameterInfo in configuration.ParametersInfo)
+                foreach (ParameterInfo parameterInfo in configuration.ParametersInfo)
                 {
-                    if (newParameterToModels.ContainsKey(parameterInfo.Id))
+                    if (newParametersWithModels.ContainsKey(parameterInfo.Id))
                     {
-                        newParameterToModels[parameterInfo.Id].Add(model.Id);
+                        newParametersWithModels[parameterInfo.Id].Models.Add(model.Id);
                     }
                     else
                     {
-                        newParameterToModels.Add(parameterInfo.Id, new List<string> { model.Id });
+                        ParameterWithModels newParameterWithModels = new(parameterInfo.Id, parameterInfo.Name,
+                                                                         parameterInfo.ValueType, new List<string> { model.Id });
+                        newParametersWithModels.Add(parameterInfo.Id, newParameterWithModels);
                     }
                 }
                 
-                foreach (ModelCharacteristicInfo characteristicInfo in configuration.CharacteristicsInfo)
+                foreach (CharacteristicInfo characteristicInfo in configuration.CharacteristicsInfo)
                 {
-                    if (newCharacteristicToModels.ContainsKey(characteristicInfo.Id))
+                    if (newCharacteristicsWithModels.ContainsKey(characteristicInfo.Id))
                     {
-                        newCharacteristicToModels[characteristicInfo.Id].Add(model.Id);
+                        newCharacteristicsWithModels[characteristicInfo.Id].Models.Add(model.Id);
                     }
                     else
                     {
-                        newCharacteristicToModels.Add(characteristicInfo.Id, new List<string> { model.Id });
+                        CharacteristicWithModels newCharacteristicWithModels = new(characteristicInfo.Id, characteristicInfo.Name,
+                                                                                   characteristicInfo.ValueType, new List<string> { model.Id });
+                        newCharacteristicsWithModels.Add(characteristicInfo.Id, newCharacteristicWithModels);
                     }
                 }
             }
-            ParameterToModels = newParameterToModels;
-            CharacteristicToModels = newCharacteristicToModels;
+            ParametersWithModels = newParametersWithModels;
+            CharacteristicsWithModels = newCharacteristicsWithModels;
         }
 
-        public override async Task<ParameterToModelsReply> GetParameterToModels(ModelEmptyMessage request, ServerCallContext context)
+        public override async Task<ParametersWithModelsReply> GetParametersWithModels(ModelEmptyMessage request, ServerCallContext context)
         {
             await UsersService.AuthenticateUser(context);
 
-            string parameterToModelsJson = JsonSerializer.Serialize(ParameterToModels);
-            return new ParameterToModelsReply
+            string parametersWithModelsJson = JsonSerializer.Serialize(ParametersWithModels, PropertyBase.PropertySerializerOptions);
+            return new ParametersWithModelsReply
             {
-                ParameterToModelsJson = parameterToModelsJson
+                ParametersWithModelsJson = parametersWithModelsJson
             };
         }
 
-        public override async Task<CharacteristicToModelsReply> GetCharacteristicToModels(ModelEmptyMessage request, ServerCallContext context)
+        public override async Task<CharacteristicsWithModelsReply> GetCharacteristicsWithModels(ModelEmptyMessage request, ServerCallContext context)
         {
             await UsersService.AuthenticateUser(context);
 
-            string characteristicToModelsJson = JsonSerializer.Serialize(CharacteristicToModels);
-            return new CharacteristicToModelsReply
+            string characteristicsWithModelsJson = JsonSerializer.Serialize(CharacteristicsWithModels, PropertyBase.PropertySerializerOptions);
+            return new CharacteristicsWithModelsReply
             {
-                CharacteristicToModelsJson = characteristicToModelsJson
+                CharacteristicsWithModelsJson = characteristicsWithModelsJson
             };
         }
 
@@ -128,7 +131,7 @@ namespace UhlnocsServer.Services
             {
                 ThrowUnknownException(exception);
             }
-            SetPropertyToModelsDictionaries();
+            SetPropertiesInfoWithModels();
 
             return new ModelEmptyMessage
             {
@@ -210,7 +213,7 @@ namespace UhlnocsServer.Services
             {
                 ThrowUnknownException(exception);
             }
-            SetPropertyToModelsDictionaries();
+            SetPropertiesInfoWithModels();
 
             return new ModelEmptyMessage
             {

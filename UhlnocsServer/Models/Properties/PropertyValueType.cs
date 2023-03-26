@@ -1,6 +1,6 @@
 ﻿namespace UhlnocsServer.Models.Properties
 {
-    public enum ModelPropertyValueType
+    public enum PropertyValueType
     {
         Int,
         Double,

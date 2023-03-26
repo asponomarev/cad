@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace UhlnocsServer.Models.Properties
 {
-    public abstract class ModelProperty
+    public abstract class PropertyBase
     {
         public static readonly JsonSerializerOptions PropertySerializerOptions = new()
         {
@@ -15,15 +15,9 @@ namespace UhlnocsServer.Models.Properties
 
         public string Id { get; set; }
 
-        public string Name { get; set; }
-
-        public ModelPropertyValueType ValueType { get; set; }
-
-        public ModelProperty(string id, string name, ModelPropertyValueType valueType)
+        public PropertyBase(string id)
         {
             Id = id;
-            Name = name;
-            ValueType = valueType;
         }
     }
 }

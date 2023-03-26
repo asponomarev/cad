@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
-using UhlnocsServer.Models.Properties.Characteristics.Infos;
-using UhlnocsServer.Models.Properties.Parameters.Infos;
+using UhlnocsServer.Models.Properties.Characteristics;
+using UhlnocsServer.Models.Properties.Parameters;
 
 namespace UhlnocsServer.Models
 {
@@ -21,9 +21,9 @@ namespace UhlnocsServer.Models
 
         public List<string> ResponsibleUsers { get; set; }
 
-        public List<ModelParameterInfo> ParametersInfo { get; set; }
+        public List<ParameterInfo> ParametersInfo { get; set; }
 
-        public List<ModelCharacteristicInfo> CharacteristicsInfo { get; set; }
+        public List<CharacteristicInfo> CharacteristicsInfo { get; set; }
 
         public ModelConfiguration(string id,
                                   string name,
@@ -32,8 +32,8 @@ namespace UhlnocsServer.Models
                                   string preparerFilePath,
                                   string collectorFilePath,
                                   List<string> responsibleUsers,
-                                  List<ModelParameterInfo> parametersInfo,
-                                  List<ModelCharacteristicInfo> characteristicsInfo)
+                                  List<ParameterInfo> parametersInfo,
+                                  List<CharacteristicInfo> characteristicsInfo)
         {
             Id = id;
             Name = name;
@@ -59,17 +59,17 @@ namespace UhlnocsServer.Models
             List<string> responsibleUsers = configRoot.GetProperty(nameof(ResponsibleUsers)).Deserialize<List<string>>();
 
             JsonElement parametersInfoElement = configRoot.GetProperty(nameof(ParametersInfo));
-            List<ModelParameterInfo> parametersInfo = new();
+            List<ParameterInfo> parametersInfo = new();
             foreach (JsonElement parameterInfoElement in parametersInfoElement.EnumerateArray())
             {
-                parametersInfo.Add(ModelParameterInfo.FromJsonElement(parameterInfoElement));
+                parametersInfo.Add(ParameterInfo.FromJsonElement(parameterInfoElement));
             }
 
             JsonElement characteristicsInfoElement = configRoot.GetProperty(nameof(CharacteristicsInfo));
-            List<ModelCharacteristicInfo> characteristicsInfo = new();
+            List<CharacteristicInfo> characteristicsInfo = new();
             foreach(JsonElement characteristicInfoElement in characteristicsInfoElement.EnumerateArray())
             {
-                characteristicsInfo.Add(ModelCharacteristicInfo.FromJsonElement(characteristicInfoElement));
+                characteristicsInfo.Add(CharacteristicInfo.FromJsonElement(characteristicInfoElement));
             }
 
             return new ModelConfiguration(id, name, description, modelFilePath, preparerFilePath, collectorFilePath,
@@ -85,15 +85,15 @@ namespace UhlnocsServer.Models
             }
 
             JsonArray parametersJsonArray = new();
-            foreach (ModelParameterInfo parameterInfo in config.ParametersInfo)
+            foreach (ParameterInfo parameterInfo in config.ParametersInfo)
             {
-                parametersJsonArray.Add(ModelParameterInfo.ToJsonNode(parameterInfo));
+                parametersJsonArray.Add(ParameterInfo.ToJsonNode(parameterInfo));
             }
 
             JsonArray characteristicsJsonArray = new();
-            foreach (ModelCharacteristicInfo characteristicInfo in config.CharacteristicsInfo)
+            foreach (CharacteristicInfo characteristicInfo in config.CharacteristicsInfo)
             {
-                characteristicsJsonArray.Add(ModelCharacteristicInfo.ToJsonNode(characteristicInfo));
+                characteristicsJsonArray.Add(CharacteristicInfo.ToJsonNode(characteristicInfo));
             }
 
             JsonObject configJsonObject = new()
