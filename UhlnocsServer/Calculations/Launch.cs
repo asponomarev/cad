@@ -16,7 +16,7 @@ namespace UhlnocsServer.Calculations
         public string Name { get; set; }
 
         [Column("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Column("user_id")]
         public string UserId { get; set; }
@@ -35,7 +35,7 @@ namespace UhlnocsServer.Calculations
         public bool RecalculateExisting { get; set; }
 
         [Column("search_accuracy")]
-        public double SearchAccuracy { get; set; }
+        public double? SearchAccuracy { get; set; }
 
         [Column("status")]
         public LaunchStatus Status { get; set; }
@@ -44,11 +44,9 @@ namespace UhlnocsServer.Calculations
         public DateTime StartTime { get; set; }
 
         [Column("end_time")]
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
 
         [Column("duration")]
-        public TimeSpan Duration { get; set; }
-
-        public List<Calculation> Calculations { get; } = new List<Calculation>();
+        public TimeSpan? Duration { get; set; }
     }
 }

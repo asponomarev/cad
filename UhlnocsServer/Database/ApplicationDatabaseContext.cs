@@ -14,8 +14,11 @@ namespace UhlnocsServer.Database
                                                           $"Username={DatabaseSettings["username"]};" +
                                                           $"Password={DatabaseSettings["password"]}";
         public DbSet<User> Users { get; set; } = null!;
-
         public DbSet<Model> Models { get; set; } = null!;
+        public DbSet<Launch> Launches { get; set; } = null!;
+        public DbSet<Calculation> Calculations { get; set; } = null!;
+        public DbSet<ParametersSet> ParametersSets { get; set; } = null!;
+        public DbSet<CharacteristicsSet> CharacteristicsSets { get; set; } = null!;
 
         public ApplicationDatabaseContext()
         {
@@ -39,23 +42,25 @@ namespace UhlnocsServer.Database
                 .HasConversion<string>();
 
             modelBuilder.Entity<Calculation>()
+                .HasNoKey();
+            modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.Launch)
-                .WithMany(l => l.Calculations)
+                .WithMany()
                 .HasForeignKey(c => c.LaunchId)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.Model)
-                .WithMany(m => m.Calculations)
+                .WithMany()
                 .HasForeignKey(c => c.ModelId)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.ParametersSet)
-                .WithMany(ps => ps.Calculations)
+                .WithMany()
                 .HasForeignKey(c => c.ParametersHash)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.CharacteristicsSet)
-                .WithMany(cs => cs.Calculations)
+                .WithMany()
                 .HasForeignKey(c => c.CharacteristicsHash)
                 .IsRequired(false);
             modelBuilder.Entity<Calculation>()

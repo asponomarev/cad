@@ -14,8 +14,6 @@ namespace UhlnocsServer.Calculations
         [Column("characteristics_values")]
         public JsonDocument CharacteristicsValuesJson { get; set; }  // json with List<CharacteristicValue>
 
-        public List<Calculation> Calculations { get; } = new List<Calculation>();
-
         public void Dispose()
         {
             CharacteristicsValuesJson.Dispose();
