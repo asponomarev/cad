@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using UhlnocsServer.Calculations;
 
 namespace UhlnocsServer.Users
 {
@@ -25,6 +26,8 @@ namespace UhlnocsServer.Users
 
         [Column("description")]
         public string Description { get; set; }
+
+        public List<Launch> Launches { get; } = new List<Launch>();
 
         public User(string id, string email, string password, string name, string surname, string description)
         {

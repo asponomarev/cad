@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using UhlnocsServer.Calculations;
 using UhlnocsServer.Models;
 using UhlnocsServer.Users;
 using static UhlnocsServer.Utils.PropertiesHolder;
@@ -24,6 +25,42 @@ namespace UhlnocsServer.Database
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseNpgsql(ConnectionString);
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Launch>()
+                .HasOne(l => l.User)
+                .WithMany(u => u.Launches)
+                .HasForeignKey(l => l.UserId)
+                .IsRequired(true);
+            modelBuilder.Entity<Launch>()
+                .Property(l => l.Status)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Calculation>()
+                .HasOne(c => c.Launch)
+                .WithMany(l => l.Calculations)
+                .HasForeignKey(c => c.LaunchId)
+                .IsRequired(true);
+            modelBuilder.Entity<Calculation>()
+                .HasOne(c => c.Model)
+                .WithMany(m => m.Calculations)
+                .HasForeignKey(c => c.ModelId)
+                .IsRequired(true);
+            modelBuilder.Entity<Calculation>()
+                .HasOne(c => c.ParametersSet)
+                .WithMany(ps => ps.Calculations)
+                .HasForeignKey(c => c.ParametersHash)
+                .IsRequired(true);
+            modelBuilder.Entity<Calculation>()
+                .HasOne(c => c.CharacteristicsSet)
+                .WithMany(cs => cs.Calculations)
+                .HasForeignKey(c => c.CharacteristicsHash)
+                .IsRequired(false);
+            modelBuilder.Entity<Calculation>()
+                .Property(c => c.Status)
+                .HasConversion<string>();
         }
     }
 }

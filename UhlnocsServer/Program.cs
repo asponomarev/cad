@@ -15,7 +15,9 @@ namespace UhlnocsServer
 
             builder.Services.AddTransient<ApplicationDatabaseContext>();
 
-            builder.Services.AddTransient<UserService>();
+            builder.Services.AddSingleton<UserService>();
+            builder.Services.AddSingleton<ModelService>();
+            builder.Services.AddSingleton<CalculationService>();
 
             builder.Services.AddTransient<IRepository<User>, Repository<User>>();
             builder.Services.AddTransient<IRepository<Model>, Repository<Model>>();
@@ -24,6 +26,7 @@ namespace UhlnocsServer
 
             app.MapGrpcService<UserService>();
             app.MapGrpcService<ModelService>();
+            app.MapGrpcService<CalculationService>();
 
             app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 

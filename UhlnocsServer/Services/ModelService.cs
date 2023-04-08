@@ -15,22 +15,23 @@ namespace UhlnocsServer.Services
 {
     public class ModelService : ModelServiceProto.ModelServiceProtoBase
     {
-        private readonly ILogger<UserService> Logger;
+        private readonly ILogger<ModelService> Logger;
         private readonly IRepository<Model> ModelsRepository;
-        private readonly UserService UsersService;
+        private readonly UserService UserService;
 
         public readonly string TmpDirectory = ModelSettings.GetValue<string>("tmpDirectory");
         public readonly string ModelsDirectory = ModelSettings.GetValue<string>("modelsDirectory");
         public readonly int BufferSize = ModelSettings.GetValue<int>("modelServiceBufferSize");
 
-        public volatile Dictionary<string, ParameterWithModels> ParametersWithModels = new();
-        public volatile Dictionary<string, CharacteristicWithModels> CharacteristicsWithModels = new();
+        // TODO: add lock on assign to these two variables
+        public static volatile Dictionary<string, ParameterWithModels> ParametersWithModels = new();
+        public static volatile Dictionary<string, CharacteristicWithModels> CharacteristicsWithModels = new();
 
-        public ModelService(ILogger<UserService> logger, IRepository<Model> modelsRepository, UserService usersService)
+        public ModelService(ILogger<ModelService> logger, IRepository<Model> modelsRepository, UserService userService)
         {
             Logger = logger;
             ModelsRepository = modelsRepository;
-            UsersService = usersService;
+            UserService = userService;
             SetPropertiesInfoWithModels();
         }
 
@@ -86,7 +87,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<ParametersWithModelsReply> GetParametersWithModels(ModelEmptyMessage request, ServerCallContext context)
         {
-            await UsersService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);
 
             string parametersWithModelsJson = JsonSerializer.Serialize(ParametersWithModels, PropertyBase.PropertySerializerOptions);
             return new ParametersWithModelsReply
@@ -97,7 +98,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<CharacteristicsWithModelsReply> GetCharacteristicsWithModels(ModelEmptyMessage request, ServerCallContext context)
         {
-            await UsersService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);
 
             string characteristicsWithModelsJson = JsonSerializer.Serialize(CharacteristicsWithModels, PropertyBase.PropertySerializerOptions);
             return new CharacteristicsWithModelsReply
@@ -108,7 +109,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<ModelEmptyMessage> AddModelConfiguration(ModelConfigurationMessage request, ServerCallContext context)
         {
-            await UsersService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);
 
             JsonDocument configurationJsonDocument = null;
             ModelConfiguration configuration = null;
@@ -141,7 +142,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<ModelConfigurationMessage> GetModelConfiguration(ModelIdRequest request,  ServerCallContext context)
         {
-            await UsersService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);
 
             Model? model = null;
             try
@@ -168,7 +169,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<ModelEmptyMessage> UpdateModelConfiguration(ModelConfigurationMessage request, ServerCallContext context)
         {
-            User sender = await UsersService.AuthenticateUser(context);
+            User sender = await UserService.AuthenticateUser(context);
 
             JsonDocument newConfigurationJsonDocument = null;
             ModelConfiguration newConfiguration = null;
@@ -223,7 +224,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<ModelEmptyMessage> DeleteModel(ModelIdRequest request, ServerCallContext context)
         {
-            User sender = await UsersService.AuthenticateUser(context);
+            User sender = await UserService.AuthenticateUser(context);
             if (UserService.IsNotAdmin(sender.Id))
             {
                 string exceptionMessage = "Model deletion is considered an unsafe operation and only admins may perform it";
@@ -255,7 +256,7 @@ namespace UhlnocsServer.Services
         public override async Task<ModelEmptyMessage> UploadModelArchive(IAsyncStreamReader<ArchivePartRequest> requestStream,
                                                                          ServerCallContext context)
         {
-            User sender = await UsersService.AuthenticateUser(context);
+            User sender = await UserService.AuthenticateUser(context);
 
             string modelDirectory = string.Empty;
             string modelZipFilePath = string.Empty;
@@ -342,7 +343,7 @@ namespace UhlnocsServer.Services
                                                         IServerStreamWriter<ArchivePartReply> responseStream,
                                                         ServerCallContext context)
         {
-            await UsersService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);
 
             Model? model = null;
             try
