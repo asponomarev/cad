@@ -42,25 +42,23 @@ namespace UhlnocsServer.Database
                 .HasConversion<string>();
 
             modelBuilder.Entity<Calculation>()
-                .HasNoKey();
-            modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.Launch)
-                .WithMany()
+                .WithMany(l => l.Calculations)
                 .HasForeignKey(c => c.LaunchId)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.Model)
-                .WithMany()
+                .WithMany(m => m.Calculations)
                 .HasForeignKey(c => c.ModelId)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.ParametersSet)
-                .WithMany()
+                .WithMany(ps => ps.Calculations)
                 .HasForeignKey(c => c.ParametersHash)
                 .IsRequired(true);
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.CharacteristicsSet)
-                .WithMany()
+                .WithMany(cs => cs.Calculations)
                 .HasForeignKey(c => c.CharacteristicsHash)
                 .IsRequired(false);
             modelBuilder.Entity<Calculation>()

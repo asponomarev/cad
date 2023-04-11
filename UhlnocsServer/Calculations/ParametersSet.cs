@@ -14,6 +14,8 @@ namespace UhlnocsServer.Calculations
         [Column("parameters_values")]
         public JsonDocument ParametersValuesJson { get; set; }  // json with List<ParameterValue>
 
+        public List<Calculation> Calculations { get; } = new List<Calculation>();
+
         public void Dispose()
         { 
             ParametersValuesJson.Dispose();

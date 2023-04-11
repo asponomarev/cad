@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
@@ -49,6 +50,18 @@ namespace UhlnocsServer.Calculations
             OptimizationAlgorithm = algorithm;
             RecalculateExisting = recalculateExisting;
             SearchAccuracy = searchAccuracy;
+        }
+
+        public ParameterValue GetParameterValue(string parameterId)
+        {
+            foreach (ParameterValue parameter in Parameters)
+            {
+                if (parameter.Id == parameterId)
+                {
+                    return parameter;
+                }
+            }
+            throw new Exception($"Launch configuration has no parameter with id {parameterId}");
         }
 
         public static LaunchConfiguration FromJsonDocument(JsonDocument configJsonDocument)

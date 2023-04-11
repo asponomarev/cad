@@ -1,6 +1,7 @@
 ﻿using Grpc.Core;
 using System.Text.Json;
 using UhlnocsServer.Calculations;
+using UhlnocsServer.Optimizations;
 using UhlnocsServer.Users;
 using static UhlnocsServer.Utils.ExceptionUtils;
 
@@ -10,11 +11,15 @@ namespace UhlnocsServer.Services
     {
         private readonly ILogger<CalculationService> Logger;
         private readonly UserService UserService;
+        private CalculationsOptimizer Optimizer;
 
-        public CalculationService(ILogger<CalculationService> logger, UserService userService)
+        public CalculationService(ILogger<CalculationService> logger,
+                                  UserService userService,
+                                  CalculationsOptimizer optimizer)
         {
             Logger = logger;
             UserService = userService;
+            Optimizer = optimizer;
         }
 
         public override async Task<LaunchConfigurationMessage> StartLaunch(LaunchConfigurationMessage request, ServerCallContext context)
@@ -31,6 +36,9 @@ namespace UhlnocsServer.Services
             {
                 ThrowBadRequestException(exception);
             }
+
+            Optimizer.OptimizeLaunch(configuration);
+
             string configJsonString = LaunchConfiguration.ToJsonString(configuration);
 
             return new LaunchConfigurationMessage

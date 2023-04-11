@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using UhlnocsServer.Calculations;
+
 namespace UhlnocsServer.Models
 {
     [Table("models")]
@@ -12,6 +14,8 @@ namespace UhlnocsServer.Models
 
         [Column("configuration")]
         public JsonDocument Configuration { get; set; }
+
+        public List<Calculation> Calculations { get; } = new List<Calculation>();
 
         public Model(string id, JsonDocument configuration)
         {

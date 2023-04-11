@@ -3,6 +3,7 @@
     public enum LaunchStatus
     {
         Running,
+        Finished,
         FinishedNoFailed,
         FinishedSomeFailed,
         FinishedAllFailed

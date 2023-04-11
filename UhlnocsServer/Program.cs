@@ -1,6 +1,7 @@
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Database;
 using UhlnocsServer.Models;
+using UhlnocsServer.Optimizations;
 using UhlnocsServer.Services;
 using UhlnocsServer.Users;
 
@@ -19,6 +20,7 @@ namespace UhlnocsServer
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<ModelService>();
             builder.Services.AddSingleton<CalculationService>();
+            builder.Services.AddSingleton<CalculationsOptimizer>();
 
             builder.Services.AddTransient<IRepository<User>, Repository<User>>();
             builder.Services.AddTransient<IRepository<Model>, Repository<Model>>();

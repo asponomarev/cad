@@ -11,8 +11,11 @@ namespace UhlnocsServer.Calculations
     [Microsoft.EntityFrameworkCore.Index("ModelId", IsUnique = false)]
     public class Calculation
     {
-        [Column("launch_id")]
+        [Column("id")]
         [Key]
+        public string Id { get; set; }
+
+        [Column("launch_id")]
         public string LaunchId { get; set; }
         public Launch Launch { get; set; }
 
@@ -25,7 +28,7 @@ namespace UhlnocsServer.Calculations
         public ParametersSet ParametersSet { get; set; }
 
         [Column("characteristics_hash")]
-        public string CharacteristicsHash { get; set; }
+        public string? CharacteristicsHash { get; set; }
         public CharacteristicsSet CharacteristicsSet { get; set; }
 
         [Column("really_calculated")]

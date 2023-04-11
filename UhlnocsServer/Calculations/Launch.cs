@@ -48,5 +48,7 @@ namespace UhlnocsServer.Calculations
 
         [Column("duration")]
         public TimeSpan? Duration { get; set; }
+
+        public List<Calculation> Calculations { get; } = new List<Calculation>();
     }
 }

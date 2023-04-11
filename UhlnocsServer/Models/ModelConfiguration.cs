@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
+using UhlnocsServer.Models.Properties;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
 
@@ -44,6 +45,30 @@ namespace UhlnocsServer.Models
             CollectorFilePath = collectorFilePath;
             ParametersInfo = parametersInfo;
             CharacteristicsInfo = characteristicsInfo;
+        }
+
+        public T GetParameterInfo<T>(string parameterId) where T : PropertyInfo
+        {
+            foreach (ParameterInfo parameter in ParametersInfo)
+            {
+                if (parameter.Id == parameterId)
+                {
+                    return parameter as T;
+                }
+            }
+            throw new Exception($"Model {Id} has no parameter with id {parameterId}");
+        }
+
+        public T GetCharacteristicInfo<T>(string characteristicId) where T : PropertyInfo
+        {
+            foreach (CharacteristicInfo characteristic in CharacteristicsInfo)
+            {
+                if (characteristic.Id == characteristicId)
+                {
+                    return characteristic as T;
+                }
+            }
+            throw new Exception($"Model {Id} has no parameter with id {characteristicId}");
         }
 
         public static ModelConfiguration FromJsonDocument(JsonDocument configJsonDocument)
