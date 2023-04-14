@@ -12,11 +12,16 @@ namespace UhlnocsServer.Utils
             throw new RpcException(new Status(StatusCode.Unknown, exceptionMessage));
         }
 
+        public static string GetInternalExceptionMessage(Exception exception)
+        {
+            return "Oops, internal error happened!" + Environment.NewLine +
+                   "Exception message:" + Environment.NewLine + exception.Message + Environment.NewLine +
+                   "Exception stack trace:" + Environment.NewLine + exception.StackTrace;
+        }
+
         public static void ThrowInternalException(Exception exception)
         {
-            string exceptionMessage = "Oops, internal error happened!" + Environment.NewLine +
-                                      "Exception message:" + Environment.NewLine + exception.Message + Environment.NewLine +
-                                      "Exception stack trace:" + Environment.NewLine + exception.StackTrace;
+            string exceptionMessage = GetInternalExceptionMessage(exception);
             throw new RpcException(new Status(StatusCode.Internal, exceptionMessage));
         }
 

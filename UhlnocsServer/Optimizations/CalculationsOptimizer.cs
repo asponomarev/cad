@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Database;
 using UhlnocsServer.Models;
@@ -251,30 +252,126 @@ namespace UhlnocsServer.Optimizations
             
         }
 
-        public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId, ModelConfiguration modelConfiguration, List<ParameterValue> parameters)
-        {
-            string calculationId = Guid.NewGuid().ToString();
+        public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,
+                                                                         ModelConfiguration modelConfiguration,
+                                                                         List<ParameterValue> parameters)
+        {          
             string modelId = modelConfiguration.Id;
 
-            string modelPreparerFilePath = GetModelFilePath(modelId, modelConfiguration.PreparerFilePath);
-            string cadFormatParametersFilePath = GetTmpFilePath(launchId, modelId, calculationId, "params_in_cad_format");
-            string modelFormatParametersFilePath = GetTmpFilePath(launchId, modelId, calculationId, "params_in_model_format");
-            bool noPreparerError = PrepareParameters(modelPreparerFilePath, cadFormatParametersFilePath,
-                                                     modelFormatParametersFilePath, parameters);
-            if (!noPreparerError)
+            // CREATE PARAMETERS
+            string parametersHash = ParameterValue.GetHashCode(parameters, modelId);
+            ParametersSet parametersSet = new ParametersSet
             {
+                Hash = parametersHash,
+                ParametersValuesJson = ParameterValue.ListToJsonDocument(parameters)
+            };
+            bool noCreateParametersSetError = true;
+            try
+            {
+                await ParametersRepository.Create(parametersSet);
+            }
+            catch (Exception)
+            {
+                noCreateParametersSetError = false;
+            }
+            if (!noCreateParametersSetError)
+            {
+                // think about logging this
                 return null;
             }
 
+            // CREATE CALCULATION
+            string calculationId = Guid.NewGuid().ToString();
+            Calculation calculation = new()
+            {
+                Id = calculationId,
+                LaunchId = launchId,
+                ModelId = modelId,
+                ParametersHash = parametersHash,
+                CharacteristicsHash = null,
+                ReallyCalculated = true,
+                Status = CalculationStatus.Running,
+                StartTime = DateTime.Now,
+                EndTime = null,
+                Duration = null,
+                Message = null
+            };
+            bool noCreateCalculationError = true;
+            try
+            {
+                await CalculationsRepository.Create(calculation);
+            }
+            catch (Exception)
+            {
+                noCreateCalculationError = false;
+            }
+            if (!noCreateCalculationError)
+            {
+                // think about logging this
+                return null;
+            }
 
+            // PREPARE PARAMETERS
+            string modelPreparerFilePath = GetModelFilePath(modelId, modelConfiguration.PreparerFilePath);
+            string cadFormatParametersFilePath = GetTmpFilePath(launchId, modelId, calculationId, "params_in_cad_format");
+            string modelFormatParametersFilePath = GetTmpFilePath(launchId, modelId, calculationId, "params_in_model_format");
+            bool noPreparerError = await PrepareParameters(modelPreparerFilePath, modelConfiguration.PreparerOkExitCode,
+                                                           cadFormatParametersFilePath, modelFormatParametersFilePath,
+                                                           parameters, calculation);
+            if (!noPreparerError) 
+            {
+                // should be already logged
+                return null;
+            }
+
+            // RUN MODEL
+
+            // COLLECT CHARACTERISTICS
+
+            return new List<CharacteristicValue>(); // will be changed later
         }
 
-        public bool PrepareParameters(string modelPreparerFilePath,
-                                      string cadFormatParametersFilePath,
-                                      string modelFormatParametersFilePath,
-                                      List<ParameterValue> parameters)
+        public async Task<bool> PrepareParameters(string modelPreparerFilePath,
+                                                  int preparerOkExitCode,
+                                                  string cadFormatParametersFilePath,
+                                                  string modelFormatParametersFilePath,
+                                                  List<ParameterValue> parameters,
+                                                  Calculation calculation)
         {
+            bool noPreparerError = true;
+            try
+            {
+                string parametersJson = ParameterValue.ListToJsonString(parameters);
+                File.WriteAllText(cadFormatParametersFilePath, parametersJson);
 
+                Process prepareProcess = new Process();
+                prepareProcess.StartInfo.FileName = modelPreparerFilePath;
+                prepareProcess.StartInfo.CreateNoWindow = true;
+                prepareProcess.StartInfo.Arguments = $"--in_file_path {cadFormatParametersFilePath} --out_file_path {modelFormatParametersFilePath}";
+                prepareProcess.Start();
+                prepareProcess.WaitForExit();
+                if (prepareProcess.ExitCode != preparerOkExitCode)
+                {
+                    throw new Exception($"Preparer process finished with exit code {prepareProcess.ExitCode}");
+                }
+            }
+            catch (Exception exception)
+            {
+                calculation.Message = GetInternalExceptionMessage(exception);
+                calculation.EndTime = DateTime.Now;
+                calculation.Duration = calculation.EndTime - calculation.StartTime;
+                calculation.Status = CalculationStatus.Failed;
+                try
+                {                
+                    await CalculationsRepository.Update(calculation);
+                } 
+                catch (Exception)
+                {
+                    // think about logging this
+                }
+                noPreparerError = false;
+            }
+            return noPreparerError;
         }
 
         public string GetTmpFilePath(string launchId, string modelId, string calculationId, string fileName)

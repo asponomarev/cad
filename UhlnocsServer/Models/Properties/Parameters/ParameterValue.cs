@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using UhlnocsServer.Models.Properties.Parameters.Values;
 using UhlnocsServer.Services;
@@ -55,6 +57,67 @@ namespace UhlnocsServer.Models.Properties.Parameters
         {
             string parameterValueJsonString = JsonSerializer.Serialize(parameterValue, parameterValue.GetType(), PropertySerializerOptions);
             return JsonNode.Parse(parameterValueJsonString);
+        }
+
+        public static string ListToJsonString(List<ParameterValue> parameters)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions { WriteIndented = true };
+            JsonNode parametersNode = ListToJsonArray(parameters);
+            return parametersNode.ToJsonString(options);
+        }
+
+        public static JsonDocument ListToJsonDocument(List<ParameterValue> parameters)
+        {
+            return JsonDocument.Parse(ListToJsonString(parameters));
+        }
+
+        public static List<ParameterValue> ListFromJsonDocument(JsonDocument document)
+        {
+            return ListFromJsonElement(document.RootElement);
+        }
+
+        public static string ListToString(List<ParameterValue> parameters, string modelId)
+        {
+            StringBuilder builder = new();
+            foreach (ParameterValue parameter in parameters)
+            {
+                if (parameter is IntParameterValue intParameter)
+                {
+                    builder.Append($"{intParameter.Id}={intParameter.Value},");
+                }
+                else if (parameter is DoubleParameterValue doubleParameter)
+                {
+                    builder.Append($"{doubleParameter.Id}={doubleParameter.Value},");
+                }
+                else if (parameter is BoolParameterValue boolParameter)
+                {
+                    builder.Append($"{boolParameter.Id}={boolParameter.Value},");
+                }
+                else if (parameter is StringParameterValue stringParameter)
+                {
+                    builder.Append($"{stringParameter.Id}={stringParameter.Value},");
+                }
+            }
+            builder.Append($"modelId={modelId}");
+            return builder.ToString();
+        }
+
+        public static string GetHashCode(List<ParameterValue> parameters, string modelId) 
+        {
+            var hash = string.Empty;
+            using (var hashAlgorithm = SHA256.Create())
+            {
+                string parametersString = ListToString(parameters, modelId);
+                byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(parametersString));
+
+                var sBuilder = new StringBuilder();
+                for (int i = 0; i < data.Length; ++i)
+                {
+                    sBuilder.Append(data[i].ToString("x2"));
+                }
+                hash = sBuilder.ToString();
+            }
+            return hash;
         }
     }
 }

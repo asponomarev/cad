@@ -16,9 +16,19 @@ namespace UhlnocsServer.Models
 
         public string ModelFilePath { get; set; }
 
+        public int ModelOkExitCode { get; set; }
+
+        public string ModelArgumentsFormatString { get; set; }
+
         public string PreparerFilePath { get; set; }
 
+        public int PreparerOkExitCode { get; set; }
+
         public string CollectorFilePath { get; set; }
+
+        public int CollectorOkExitCode { get; set; }
+
+        public bool CollectFromStdout { get; set; }
 
         public List<string> ResponsibleUsers { get; set; }
 
@@ -30,8 +40,13 @@ namespace UhlnocsServer.Models
                                   string name,
                                   string description,
                                   string modelFilePath,
+                                  int modelOkExitCode,
+                                  string modelArgumentsFormatString,
                                   string preparerFilePath,
+                                  int preparerOkExitCode,
                                   string collectorFilePath,
+                                  int collectorOkExitCode,
+                                  bool collectFromStdout,
                                   List<string> responsibleUsers,
                                   List<ParameterInfo> parametersInfo,
                                   List<CharacteristicInfo> characteristicsInfo)
@@ -39,10 +54,19 @@ namespace UhlnocsServer.Models
             Id = id;
             Name = name;
             Description = description;
-            ResponsibleUsers = responsibleUsers;
+            
             ModelFilePath = modelFilePath;
+            ModelOkExitCode = modelOkExitCode;
+            ModelArgumentsFormatString = modelArgumentsFormatString;
+
             PreparerFilePath = preparerFilePath;
+            PreparerOkExitCode = preparerOkExitCode;
+
             CollectorFilePath = collectorFilePath;
+            CollectorOkExitCode = collectorOkExitCode;
+            CollectFromStdout = collectFromStdout;
+
+            ResponsibleUsers = responsibleUsers;
             ParametersInfo = parametersInfo;
             CharacteristicsInfo = characteristicsInfo;
         }
@@ -79,8 +103,13 @@ namespace UhlnocsServer.Models
             string name = configRoot.GetProperty(nameof(Name)).GetString();
             string description = configRoot.GetProperty(nameof(Description)).GetString();
             string modelFilePath = configRoot.GetProperty(nameof(ModelFilePath)).GetString();
+            int modelOkExitCode = configRoot.GetProperty(nameof(ModelOkExitCode)).GetInt32();
+            string modelArgumentsFormatString = configRoot.GetProperty(nameof(ModelArgumentsFormatString)).GetString();
             string preparerFilePath = configRoot.GetProperty(nameof(PreparerFilePath)).GetString();
+            int preparerOkExitCode = configRoot.GetProperty(nameof(PreparerOkExitCode)).GetInt32();
             string collectorFilePath = configRoot.GetProperty(nameof(CollectorFilePath)).GetString();
+            int collectorOkExitCode = configRoot.GetProperty(nameof(CollectorOkExitCode)).GetInt32();
+            bool collectFromStdout = configRoot.GetProperty(nameof(CollectFromStdout)).GetBoolean();
             List<string> responsibleUsers = configRoot.GetProperty(nameof(ResponsibleUsers)).Deserialize<List<string>>();
 
             JsonElement parametersInfoElement = configRoot.GetProperty(nameof(ParametersInfo));
@@ -97,7 +126,10 @@ namespace UhlnocsServer.Models
                 characteristicsInfo.Add(CharacteristicInfo.FromJsonElement(characteristicInfoElement));
             }
 
-            return new ModelConfiguration(id, name, description, modelFilePath, preparerFilePath, collectorFilePath,
+            return new ModelConfiguration(id, name, description,
+                                          modelFilePath, modelOkExitCode, modelArgumentsFormatString,
+                                          preparerFilePath, preparerOkExitCode,
+                                          collectorFilePath, collectorOkExitCode, collectFromStdout,
                                           responsibleUsers, parametersInfo, characteristicsInfo);
         }
 
@@ -127,8 +159,13 @@ namespace UhlnocsServer.Models
                 [nameof(Name)] = config.Name,
                 [nameof(Description)] = config.Description,
                 [nameof(ModelFilePath)] = config.ModelFilePath,
+                [nameof(ModelOkExitCode)] = config.ModelOkExitCode,
+                [nameof(ModelArgumentsFormatString)] = config.ModelArgumentsFormatString,
                 [nameof(PreparerFilePath)] = config.PreparerFilePath,
+                [nameof(PreparerOkExitCode)] = config.PreparerOkExitCode,
                 [nameof(CollectorFilePath)] = config.CollectorFilePath,
+                [nameof(CollectorOkExitCode)] = config.CollectorOkExitCode,
+                [nameof(CollectFromStdout)] = config.CollectFromStdout,
                 [nameof(ResponsibleUsers)] = responsibleUsersJsonArray,
                 [nameof(ParametersInfo)] = parametersJsonArray,
                 [nameof(CharacteristicsInfo)] = characteristicsJsonArray
