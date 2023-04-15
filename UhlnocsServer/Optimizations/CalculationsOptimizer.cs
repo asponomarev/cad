@@ -133,11 +133,6 @@ namespace UhlnocsServer.Optimizations
         // TODO: think about try-catches
         public async Task OptimizeModel(string launchId, string modelId, LaunchConfiguration modelLaunchConfiguration)
         {
-            Task[] calculationsTasks = null;
-            string variableParameterId = modelLaunchConfiguration.OptimizationAlgorithm.VariableParameter;
-            ParameterValue variableParameter = modelLaunchConfiguration.GetParameterValue(variableParameterId);
-            PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
-
             Model? model = null;
             try
             {
@@ -149,6 +144,14 @@ namespace UhlnocsServer.Optimizations
             }
             ModelConfiguration modelConfiguration = ModelConfiguration.FromJsonDocument(model.Configuration);
 
+            bool noCalculationError = true; // ошибка расчета характеристик
+            List<ParameterValue> calculationParameters = new(); // параметры модели для проведения расчетов
+            string variableParameterId = modelLaunchConfiguration.OptimizationAlgorithm.VariableParameter;
+            ParameterValue variableParameter = modelLaunchConfiguration.GetParameterValue(variableParameterId);
+            PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
+
+            /* Constant Step Search */
+            Task[] calculationsTasks = null;
             if (modelLaunchConfiguration.OptimizationAlgorithm is ConstantStep constantStep)
             {
                 if (valueType == PropertyValueType.Bool)
@@ -166,7 +169,6 @@ namespace UhlnocsServer.Optimizations
 
                 for (int i = 0; i < constantStep.Iterations; ++i)
                 {
-                    List<ParameterValue> calculationParameters = new();
                     foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
                     {
                         if (parameter.Id != variableParameterId)
@@ -205,16 +207,16 @@ namespace UhlnocsServer.Optimizations
                 }
                 Task.WaitAll(calculationsTasks);
             }
+
+            /* Smart Constant Step Search */
             else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartConstantStep smartConstantStep)
             {
                 int iteration = 0;
-                bool noCalculationError = true;
+                double firstValue = (variableParameter as DoubleParameterValue).Value;
                 double variableParameterValue = 0;
                 double throughputCharacteristicValue = 0;
                 do
                 {
-                    
-                    List<ParameterValue> calculationParameters = new();
                     foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
                     {
                         if (parameter.Id != variableParameterId)
@@ -223,13 +225,12 @@ namespace UhlnocsServer.Optimizations
                         }
                         else
                         {
-                            double firstValue = (variableParameter as DoubleParameterValue).Value;
                             variableParameterValue = firstValue + smartConstantStep.Step * iteration;
                             calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
                         }
                     }
 
-                    
+
                     List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
                     if (calculationCharacteristics == null)
                     {
@@ -237,19 +238,279 @@ namespace UhlnocsServer.Optimizations
                     }
                     else
                     {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
-                                                                                               smartConstantStep.ThroughputCharacteristic);
+                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
                     }
-                    
+
                     ++iteration;
                 }
                 while (noCalculationError &&
-                       iteration < smartConstantStep.MaxIterations && 
+                       iteration < smartConstantStep.MaxIterations &&
                        OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, smartConstantStep.Accuracy));
             }
-            // else if ...
 
-            
+            /* Binary Search */
+            else if (modelLaunchConfiguration.OptimizationAlgorithm is BinarySearch binarySearch)
+            {
+                double firstValue = (variableParameter as DoubleParameterValue).Value;
+                double lastValue = binarySearch.MaxRate;
+                double variableParameterValue = 0;
+                for (int i = 0; i < binarySearch.Iterations; ++i)
+                {
+                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
+                    {
+                        if (parameter.Id != variableParameterId)
+                        {
+                            calculationParameters.Add(parameter);  // this may be bad
+                        }
+                        else
+                        {
+                            variableParameterValue = (firstValue + lastValue) / 2;
+                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
+                        }
+                    }
+                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    if (calculationCharacteristics == null)
+                    {
+                        noCalculationError = false;
+                        break;
+                    }
+                    else
+                    {
+                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
+                        if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, binarySearch.Accuracy))
+                        {
+                            firstValue = variableParameterValue;
+                        }
+                        else
+                        {
+                            lastValue = variableParameterValue;
+                        }
+                    }
+                }
+            }
+
+            /* Smart Binary Search */
+            else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartBinarySearch smartBinarySearch)
+            {
+                int iteration = 0;
+                double firstValue = (variableParameter as DoubleParameterValue).Value;
+                double lastValue = smartBinarySearch.MaxRate;
+                double variableParameterValue = 0;
+                string firstChangedBorder = null;
+                bool bothBordersChanged = false;
+                do
+                {
+                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
+                    {
+                        if (parameter.Id != variableParameterId)
+                        {
+                            calculationParameters.Add(parameter);  // this may be bad
+                        }
+                        else
+                        {
+                            variableParameterValue = (firstValue + lastValue) / 2;
+                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
+                        }
+                    }
+                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    if (calculationCharacteristics == null)
+                    {
+                        noCalculationError = false;
+                    }
+                    else
+                    {
+                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartBinarySearch.ThroughputCharacteristic);
+                        if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, binarySearch.Accuracy))
+                        {
+                            firstValue = variableParameterValue;
+                            if (firstChangedBorder == null)
+                            {
+                                firstChangedBorder = "Left";
+                            }
+                            else if (firstChangedBorder == "Right")
+                            {
+                                bothBordersChanged = true;
+                            }
+                            else if (firstChangedBorder == "Left" && bothBordersChanged == true)
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            lastValue = variableParameterValue;
+                            if (firstChangedBorder == null)
+                            {
+                                firstChangedBorder = "Right";
+                            }
+                            else if (firstChangedBorder == "Left")
+                            {
+                                bothBordersChanged = true;
+                            }
+                            else if (firstChangedBorder == "Right" && bothBordersChanged == true)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    ++iteration;
+                }
+                while (noCalculationError && iteration < smartBinarySearch.MaxIterations);
+            }
+
+            /* Golden Section Search */
+            else if (modelLaunchConfiguration.OptimizationAlgorithm is GoldenSection goldenSection)
+            {
+                const double PHI_number = 1.618; // Fibonacci number
+                double firstValue = (variableParameter as DoubleParameterValue).Value;
+                double lastValue = goldenSection.MaxRate;
+                double variableParameterValue = 0;
+                double X1;
+                double X2;
+                string lastFoundPoint;
+                string nextPoint = "X1";
+                for (int i = 0; i < goldenSection.Iterations; ++i)
+                {
+                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
+                    {
+                        if (parameter.Id != variableParameterId)
+                        {
+                            calculationParameters.Add(parameter);  // this may be bad
+                        }
+                        else
+                        {
+                            if (nextPoint == "X1")
+                            {
+                                X1 = lastValue - (lastValue - firstValue) / PHI_number;
+                                variableParameterValue = X1;
+                                lastFoundPoint == "X1";
+                                nextPoint = "X2";
+                            }
+                            else // nextPoint = X2
+                            {
+                                X2 = firstValue + (lastValue - firstValue) / PHI_number;
+                                variableParameterValue = X2;
+                                lastFoundPoint = "X2";
+                                nextPoint = "X1";
+                            }
+                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
+                        }
+                    }
+                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    if (calculationCharacteristics == null)
+                    {
+                        noCalculationError = false;
+                        break;
+                    }
+                    else
+                    {
+                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, goldenSection.ThroughputCharacteristic);
+                        if (lastFoundPoint == "X1")
+                        {
+                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy) == false)
+                            {
+                                lastValue = X1;
+                                nextPoint = "X1";
+                            }
+                        }
+                        else // lastFoundPoint == X2
+                        {
+                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy))
+                            {
+                                firstValue = X2;
+                            }
+                            else // X2 - bad
+                            {
+                                firstValue = X1;
+                                lastValue = X2;
+                            }
+                        }
+                    }
+                }
+            }
+
+            /* Smart Golden Section Search */
+            else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartGoldenSection smartGoldenSection)
+            {
+                const double PHI_number = 1.618; // Fibonacci number
+                double firstValue = (variableParameter as DoubleParameterValue).Value;
+                double lastValue = smartGoldenSection.MaxRate;
+                double variableParameterValue = 0;
+                double X1;
+                double X2;
+                string lastFoundPoint;
+                string nextPoint = "X1";
+                bool inMiddleSegment = false;
+                do
+                {
+                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
+                    {
+                        if (parameter.Id != variableParameterId)
+                        {
+                            calculationParameters.Add(parameter);  // this may be bad
+                        }
+                        else
+                        {
+                            if (nextPoint == "X1")
+                            {
+                                X1 = lastValue - (lastValue - firstValue) / PHI_number;
+                                variableParameterValue = X1;
+                                lastFoundPoint == "X1";
+                                nextPoint = "X2";
+                            }
+                            else // nextPoint = X2
+                            {
+                                X2 = firstValue + (lastValue - firstValue) / PHI_number;
+                                variableParameterValue = X2;
+                                lastFoundPoint = "X2";
+                                nextPoint = "X1";
+                            }
+                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
+                        }
+                    }
+                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    if (calculationCharacteristics == null)
+                    {
+                        noCalculationError = false;
+                        break;
+                    }
+                    else
+                    {
+                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartGoldenSection.ThroughputCharacteristic);
+                        if (lastFoundPoint == "X1")
+                        {
+                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy) == false)
+                            {
+                                lastValue = X1;
+                                nextPoint = "X1";
+                                if (inMiddleSegment == true)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        else // lastFoundPoint == X2
+                        {
+                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy))
+                            {
+                                firstValue = X2;
+                                if (inMiddleSegment == true)
+                                {
+                                    break;
+                                }
+                            }
+                            else // X2 - bad
+                            {
+                                firstValue = X1;
+                                lastValue = X2;
+                                inMiddleSegment = true;
+                            }
+                        }
+                    }
+                }
+                while (noCalculationError && iteration < smartGoldenSection.MaxIterations);
+            }
+            // Тут будет какой-то код Саши
         }
 
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,

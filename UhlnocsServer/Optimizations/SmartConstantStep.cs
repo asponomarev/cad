@@ -10,12 +10,11 @@
 
         public double Accuracy { get; set; }
 
-        public SmartConstantStep (AlgorithmType algorithmType,
-                                  string variableParameter,
+        public SmartConstantStep (string variableParameter,
                                   string throughputCharacteristic,
                                   double step,
                                   int maxIterations,
-                                  double accuracy) : base(algorithmType, variableParameter)
+                                  double accuracy) : base(AlgorithmType.SmartConstantStep, variableParameter)
         {
             ThroughputCharacteristic = throughputCharacteristic;
             Step = step;
