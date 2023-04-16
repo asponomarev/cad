@@ -7,9 +7,9 @@ namespace UhlnocsServer.Calculations
     [Table("characteristics_sets")]
     public class CharacteristicsSet : IDisposable
     {
-        [Column("hash")]
+        [Column("id")]
         [Key]
-        public string Hash { get; set; }
+        public string Id { get; set; }
 
         [Column("characteristics_values")]
         public JsonDocument CharacteristicsValuesJson { get; set; }  // json with List<CharacteristicValue>

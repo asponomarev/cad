@@ -76,6 +76,18 @@ namespace UhlnocsServer.Models.Properties.Parameters
             return ListFromJsonElement(document.RootElement);
         }
 
+        public static ParameterValue GetFromListById(List<ParameterValue> parameters, string parameterId)
+        {
+            foreach (ParameterValue parameter in parameters)
+            {
+                if (parameter.Id == parameterId)
+                {
+                    return parameter;
+                }
+            }
+            throw new Exception($"Parameters values list {parameters} has no parameter with id {parameterId}");
+        }
+
         public static string ListToString(List<ParameterValue> parameters, string modelId)
         {
             StringBuilder builder = new();

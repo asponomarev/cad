@@ -59,7 +59,7 @@ namespace UhlnocsServer.Database
             modelBuilder.Entity<Calculation>()
                 .HasOne(c => c.CharacteristicsSet)
                 .WithMany(cs => cs.Calculations)
-                .HasForeignKey(c => c.CharacteristicsHash)
+                .HasForeignKey(c => c.CharacteristicsId)
                 .IsRequired(false);
             modelBuilder.Entity<Calculation>()
                 .Property(c => c.Status)

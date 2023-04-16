@@ -52,18 +52,6 @@ namespace UhlnocsServer.Calculations
             SearchAccuracy = searchAccuracy;
         }
 
-        public ParameterValue GetParameterValue(string parameterId)
-        {
-            foreach (ParameterValue parameter in Parameters)
-            {
-                if (parameter.Id == parameterId)
-                {
-                    return parameter;
-                }
-            }
-            throw new Exception($"Launch configuration has no parameter with id {parameterId}");
-        }
-
         public static LaunchConfiguration FromJsonDocument(JsonDocument configJsonDocument)
         {
             JsonElement configRoot = configJsonDocument.RootElement;

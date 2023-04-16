@@ -1,4 +1,6 @@
-﻿using UhlnocsServer.Models.Properties.Characteristics.Values;
+﻿using System.Text.Json;
+using UhlnocsServer.Models.Properties.Characteristics.Values;
+using UhlnocsServer.Services;
 
 namespace UhlnocsServer.Models.Properties.Characteristics
 {
@@ -19,6 +21,27 @@ namespace UhlnocsServer.Models.Properties.Characteristics
                 }
             }
             throw new Exception($"Characteristic with id {throughputCharacteristicId} not found in list {characteristics}");
+        }
+
+        public static List<CharacteristicValue> ListFromJsonElement(JsonElement characteristicsElement)
+        {
+            List<CharacteristicValue> characteristics = new();
+            foreach (JsonElement characteristicElement in characteristicsElement.EnumerateArray())
+            {
+                characteristics.Add(FromJsonElement(characteristicElement));
+            }
+            return characteristics;
+        }
+
+        public static CharacteristicValue FromJsonElement(JsonElement characteristicElement)
+        {
+            string characteristicId = characteristicElement.GetProperty(nameof(Id)).GetString();
+            PropertyValueType characteristicValueType = ModelService.CharacteristicsWithModels[characteristicId].ValueType;
+            if (characteristicValueType == PropertyValueType.Int)
+            {
+                return characteristicElement.Deserialize<IntCharacteristicValue>(PropertySerializerOptions);
+            }
+            return characteristicElement.Deserialize<DoubleCharacteristicValue>(PropertySerializerOptions);
         }
     }
 }

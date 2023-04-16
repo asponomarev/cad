@@ -389,5 +389,21 @@ namespace UhlnocsServer.Services
             }
             File.Delete(modelZipFilePath);
         }
+
+        // method for DSS
+        public async Task<ModelConfiguration> GetModelConfigurationInternal(string modelId)
+        {
+            ModelConfiguration configuration = null;
+            try
+            {
+                Model? model = await ModelsRepository.GetById(modelId);
+                configuration = ModelConfiguration.FromJsonDocument(model.Configuration);
+            }
+            catch (Exception exception)
+            {
+                ThrowInternalException(exception);
+            }
+            return configuration;
+        }
     }
 }
