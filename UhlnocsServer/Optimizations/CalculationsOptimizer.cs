@@ -251,10 +251,12 @@ namespace UhlnocsServer.Optimizations
             /* Binary Search */
             else if (modelLaunchConfiguration.OptimizationAlgorithm is BinarySearch binarySearch)
             {
-                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                double lastValue = binarySearch.MaxRate;
-                double variableParameterValue = 0;
-                for (int i = 0; i < binarySearch.Iterations; ++i)
+                binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                binarySearch.LastValue = binarySearch.MaxRate;
+
+                // first iter check
+
+                for (int i = 1; i < binarySearch.Iterations; ++i)
                 {
                     foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
                     {
@@ -264,7 +266,7 @@ namespace UhlnocsServer.Optimizations
                         }
                         else
                         {
-                            variableParameterValue = (firstValue + lastValue) / 2;
+                            double variableParameterValue = BinarySearch.MakeParameterValue(binarySearch.FirstValue, binarySearch.LastValue);
                             calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
                         }
                     }
@@ -279,11 +281,11 @@ namespace UhlnocsServer.Optimizations
                         throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
                         if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, binarySearch.Accuracy))
                         {
-                            firstValue = variableParameterValue;
+                            binarySearch.FirstValue = variableParameterValue;
                         }
                         else
                         {
-                            lastValue = variableParameterValue;
+                            binarySearch.LastValue = variableParameterValue;
                         }
                     }
                 }
@@ -510,7 +512,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 while (noCalculationError && iteration < smartGoldenSection.MaxIterations);
             }
-            // Тут будет какой-то код Саши
+            // c vТут будет какой-то код Саши
         }
 
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,

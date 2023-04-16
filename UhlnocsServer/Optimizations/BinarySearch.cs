@@ -10,6 +10,10 @@
 
         public double Accuracy { get; set; }
 
+        public double FirstValue { get; set; }
+
+        public double LastValue { get; set; }
+
         public BinarySearch (string variableParameter,
                              string throughputCharacteristic,
                              int iterations,
@@ -20,6 +24,11 @@
             Iterations = iterations;
             MaxRate = maxRate;
             Accuracy = accuracy;
+        }
+
+        public static double MakeParameterValue(double firstValue, double lastValue)
+        {
+            return (firstValue + lastValue) / 2;
         }
     }
 }
