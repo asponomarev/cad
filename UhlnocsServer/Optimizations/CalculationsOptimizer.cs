@@ -74,42 +74,22 @@ namespace UhlnocsServer.Optimizations
 
         public async Task OptimizeLaunch(LaunchConfiguration launchConfiguration)
         {
-            Launch launch = new()
+            // create launch
+            Launch launch = await CreateLaunch(launchConfiguration);
+            if (launch == null)
             {
-                Id = Guid.NewGuid().ToString(),
-                Name = launchConfiguration.Name,
-                Description = launchConfiguration.Description,
-                UserId = launchConfiguration.User,
-                UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
-                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
-                OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
-                RecalculateExisting = launchConfiguration.RecalculateExisting,
-                SearchAccuracy = launchConfiguration.SearchAccuracy,
-                Status = LaunchStatus.Running,
-                StartTime = DateTime.Now,
-                EndTime = null,
-                Duration = null
-            };
-            try
-            {
-                await LaunchesRepository.Create(launch);
-            }
-            catch (Exception exception)
-            {
-                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
-                string message = "Unable to create launch due to database error!" + Environment.NewLine +
-                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
-                SafeAppendToFile(LogFilePath, message);
                 return;
             }
 
+            // get ids of models which will be used to calculate characteristics in this launch
             List<string> modelsIds = new();
             foreach (CharacteristicWithModel characteristic in launchConfiguration.Characteristics)
             {
                 modelsIds.Add(characteristic.Model);
             }
 
-            Dictionary<string, List<ParameterValue>> parametersOfModels = new();
+            // make sublists of parameters for each model from list that contains all parameters for all models
+            Dictionary<string, List<ParameterValue>> parametersOfModels = new(); 
             foreach (string modelId in modelsIds)
             {
                 parametersOfModels[modelId] = new();
@@ -126,6 +106,7 @@ namespace UhlnocsServer.Optimizations
                 }
             }
 
+            // create, start and wait models tasks
             Task<ModelStatus>[] modelsTasks = new Task<ModelStatus>[modelsIds.Count];
             for (int i = 0; i < modelsIds.Count; ++i)
             {
@@ -137,21 +118,12 @@ namespace UhlnocsServer.Optimizations
             }
             Task.WaitAll(modelsTasks);
 
-            launch.EndTime = DateTime.Now;
-            launch.Status = GetLaunchStatus(modelsTasks);
-            try
-            {
-                await LaunchesRepository.Update(launch);
-            }
-            catch (Exception exception)
-            {
-                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
-                string message = "Unable to update launch due to database error!" + Environment.NewLine +
-                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
-                SafeAppendToFile(LogFilePath, message);
-            }
+            // update launch
+            LaunchStatus launchStatus = GetLaunchStatus(modelsTasks);
+            await OnLaunchFinished(launch, launchStatus);
         }
 
+        // will be beautified later
         public async Task<ModelStatus> OptimizeModel(string launchId,
                                                      string modelId,
                                                      List<ParameterValue> parameters,
@@ -289,7 +261,6 @@ namespace UhlnocsServer.Optimizations
             string parametersHash = await CreateParameters(parameters, modelId, launchId);
             if (parametersHash == null)
             {
-                // should be already logged
                 return null;
             }
 
@@ -297,7 +268,6 @@ namespace UhlnocsServer.Optimizations
             Calculation calculation = await CreateCalculation(launchId, modelId, parametersHash);
             if (calculation == null)
             {
-                // should be already logged
                 return null;
             }
             string calculationId = calculation.Id;
@@ -311,7 +281,6 @@ namespace UhlnocsServer.Optimizations
                                                            parameters, calculation);
             if (!noPreparerError) 
             {
-                // should be already logged
                 return null;
             }
 
@@ -323,7 +292,6 @@ namespace UhlnocsServer.Optimizations
                                                modelFormatParametersFilePath, modelFormatCharacteristicsFilePath, calculation);
             if (!noModelError)
             {
-                // should be already logged
                 return null;
             }
 
@@ -333,6 +301,40 @@ namespace UhlnocsServer.Optimizations
             return await CollectCharacteristics(modelCollectorFilePath, modelConfiguration.CollectorOkExitCode,
                                                 modelFormatCharacteristicsFilePath, cadFormatCharacteristicsFilePath,
                                                 calculation);
+        }
+
+        private async Task<Launch> CreateLaunch(LaunchConfiguration launchConfiguration)
+        {
+            Launch launch = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = launchConfiguration.Name,
+                Description = launchConfiguration.Description,
+                UserId = launchConfiguration.User,
+                UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
+                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
+                OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
+                RecalculateExisting = launchConfiguration.RecalculateExisting,
+                SearchAccuracy = launchConfiguration.SearchAccuracy,
+                Status = LaunchStatus.Running,
+                StartTime = DateTime.Now,
+                EndTime = null,
+                Duration = null
+            };
+            bool noCreateLaunchError = true;
+            try
+            {
+                await LaunchesRepository.Create(launch);
+            }
+            catch (Exception exception)
+            {
+                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
+                string message = "Unable to create launch due to database error!" + Environment.NewLine +
+                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(LogFilePath, message);
+                noCreateLaunchError = false;
+            }
+            return (noCreateLaunchError) ? launch : null;
         }
 
         private LaunchStatus GetLaunchStatus(Task<ModelStatus>[] modelsTasks)
@@ -361,6 +363,24 @@ namespace UhlnocsServer.Optimizations
                 return LaunchStatus.FinishedAllFailed;
             }
             return LaunchStatus.FinishedSomeFailed;
+        }
+
+        private async Task OnLaunchFinished(Launch launch, LaunchStatus launchStatus)
+        {
+            launch.EndTime = DateTime.Now;
+            launch.Duration = launch.EndTime - launch.StartTime;
+            launch.Status = launchStatus;
+            try
+            {
+                await LaunchesRepository.Update(launch);
+            }
+            catch (Exception exception)
+            {
+                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
+                string message = "Unable to update launch due to database error!" + Environment.NewLine +
+                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(LogFilePath, message);
+            }
         }
 
         private ModelStatus GetModelStatus(Task<List<CharacteristicValue>>[] calculationsTasks)
@@ -569,7 +589,7 @@ namespace UhlnocsServer.Optimizations
 
         private static Process ConfigureProcess(string executableFilePath, string argumentsFormatString, string[] arguments)
         {
-            Process process = new Process();
+            Process process = new();
             process.StartInfo.CreateNoWindow = true;
 
             if (executableFilePath.EndsWith(".exe")) {
@@ -621,7 +641,6 @@ namespace UhlnocsServer.Optimizations
         {
             string characteristicsJson = File.ReadAllText(cadFormatCharacteristicsFilePath);
             JsonDocument characteristicsDocument = JsonDocument.Parse(characteristicsJson);
-
             List<CharacteristicValue> characteristics = CharacteristicValue.ListFromJsonElement(characteristicsDocument.RootElement);
             
             CharacteristicsSet characteristicsSet = new()
