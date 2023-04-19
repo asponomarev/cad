@@ -1,7 +1,6 @@
 ﻿using DSS.Extensions;
 using DSS.Models;
 using DSS.Wrappers;
-using UhlnocsServer.Calculations;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Infos;
 using UhlnocsServer.Models.Properties.Parameters.Values;
@@ -19,25 +18,25 @@ namespace DSS
             _nearestNeighborsFinder = nearestNeighborsFinder;
         }
 
-        public IList<ParameterValue> GetMatching(IList<ParameterValue> knownParameters, string modelId)
+        public async Task<IList<ParameterValue>> GetMatching(IList<ParameterValue> knownParameters, string modelId)
         {
             var resultParameters = new List<ParameterValue>();
 
-            var suitableСonfigurations = GetSuitableСonfigurations(knownParameters, modelId);
+            var suitableParameters = await _serverWrapper.GetModelParametersValues(modelId);
 
-            var matchingConfiguration = suitableСonfigurations.FirstOrDefault(config
+            var matchingParameters = suitableParameters.FirstOrDefault(config
                 => knownParameters
                 .Join(
-                    config.Parameters,
+                    config,
                     known => new { known.Id, Value = known.GetValue() },
                     configParam => new { configParam.Id, Value = configParam.GetValue() },
                     (known, configParam) => known)
                 .Count() == knownParameters.Count);
 
-            if (matchingConfiguration != null)
+            if (matchingParameters != null)
             {
                 resultParameters.AddRange(knownParameters);
-                foreach (var parameter in matchingConfiguration.Parameters)
+                foreach (var parameter in matchingParameters)
                 {
                     if (!resultParameters.Any(p => p.Id.Equals(parameter.Id)))
                     {
@@ -63,26 +62,25 @@ namespace DSS
             return resultParameters;
         }
 
-        public IList<ParameterValue> GetNearest(IList<ParameterValue> knownParameters, string modelId, double searchAccuracy)
+        public async Task<IList<ParameterValue>> GetNearest(IList<ParameterValue> knownParameters, string modelId, double searchAccuracy)
         {
             var resultParameters = new List<ParameterValue>();
 
-            var suitableСonfigurations = GetSuitableСonfigurations(knownParameters, modelId);
+            var suitableParameters = await _serverWrapper.GetModelParametersValues(modelId);
 
-            var nearestConfigurations = suitableСonfigurations.Where(config
+            var nearestParameters = suitableParameters.Where(config
                 => knownParameters
                 .Join(
-                    config.Parameters,
+                    config,
                     known => known.Id,
                     configParam => configParam.Id,
                     (known, configParam) => new JoinedParameters(known, configParam))
                 .Where(pair => pair.CompareParameters(searchAccuracy))
                 .Count() == knownParameters.Count).ToList();
 
-            if (nearestConfigurations.Any())
+            if (nearestParameters.Any())
             {
                 resultParameters.AddRange(knownParameters);
-                var nearestParameters = nearestConfigurations.Select(c => c.Parameters).ToList();
                 var nearestNeighbors = _nearestNeighborsFinder.Find(nearestParameters, new List<ParameterValue>(knownParameters), 5);
                 
                 var groupingNearestNeighbors = nearestNeighbors.SelectMany(config => config).GroupBy(p => p.Id);
@@ -150,15 +148,6 @@ namespace DSS
                 }
             }
             return resultParameters;
-        }
-
-        private IEnumerable<LaunchConfiguration> GetSuitableСonfigurations(IList<ParameterValue> knownParameters, string modelId)
-        {
-            return _serverWrapper.GetLaunchConfigurations()
-                        .Where(l => l.Characteristics.Select(c => c.Model).Contains(modelId))
-                        .Where(l => l.Parameters.Select(p => p.Id)
-                            .Intersect(knownParameters.Select(p => p.Id))
-                            .Count() == knownParameters.Count);
         }
     }
 }

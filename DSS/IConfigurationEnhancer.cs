@@ -4,6 +4,6 @@ namespace DSS
 {
     public interface IConfigurationEnhancer
     {
-        public LaunchConfiguration GetModifiedLaunchConfiguration(LaunchConfiguration launchConfiguration);
+        public Task<LaunchConfiguration> GetModifiedLaunchConfiguration(LaunchConfiguration launchConfiguration);
     }
 }

@@ -1,5 +1,6 @@
 using DSS;
 using DSS.Wrappers;
+using Moq;
 using Moq.AutoMock;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Infos;
@@ -32,9 +33,9 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(ClassCreator.GetListsParameters()));
             var parameterFinder = autoMocker.CreateInstance<ParameterFinder>();
-            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model1");
+            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model1").Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(expectedParameters.Count, resultParameters.Count);
             Assert.IsTrue(ResultsComparator.IsEquals(expectedParameters, new List<ParameterValue>(resultParameters)));
@@ -52,9 +53,9 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(new List<List<ParameterValue>>()));
             var parameterFinder = autoMocker.CreateInstance<ParameterFinder>();
-            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model4");
+            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model4").Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(0, resultParameters.Count);
         }
@@ -71,9 +72,9 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(ClassCreator.GetListsParameters()));
             var parameterFinder = autoMocker.CreateInstance<ParameterFinder>();
-            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model4");
+            var resultParameters = parameterFinder.GetMatching(knownParameters, "Model4").Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(0, resultParameters.Count);
         }
@@ -101,9 +102,9 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(ClassCreator.GetListsParameters()));
             var parameterFinder = new ParameterFinder(autoMocker.GetMock<IServerWrapper>().Object, new NearestNeighborsFinder());
-            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1);
+            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1).Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(expectedParameters.Count, resultParameters.Count);
             Assert.IsTrue(ResultsComparator.IsEquals(expectedParameters, new List<ParameterValue>(resultParameters)));
@@ -121,10 +122,10 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(new List<List<ParameterValue>>()));
             autoMocker.GetMock<INearestNeighborsFinder>().CallBase = true;
             var parameterFinder = new ParameterFinder(autoMocker.GetMock<IServerWrapper>().Object, new NearestNeighborsFinder());
-            var resultParameters = parameterFinder.GetNearest(knownParameters, "ModelTest", 1);
+            var resultParameters = parameterFinder.GetNearest(knownParameters, "ModelTest", 1).Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(0, resultParameters.Count);
         }
@@ -141,10 +142,10 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(ClassCreator.GetListsParameters()));
             autoMocker.GetMock<INearestNeighborsFinder>().CallBase = true;
             var parameterFinder = new ParameterFinder(autoMocker.GetMock<IServerWrapper>().Object, new NearestNeighborsFinder());
-            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1);
+            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1).Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(0, resultParameters.Count);
         }
@@ -161,10 +162,10 @@ namespace Tests
                 new StringParameterValue("Parameter8", "ParameterTest")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
+            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetModelParametersValues(It.IsAny<string>())).Returns(() => Task.FromResult(ClassCreator.GetListsParameters()));
             autoMocker.GetMock<INearestNeighborsFinder>().CallBase = true;
             var parameterFinder = new ParameterFinder(autoMocker.GetMock<IServerWrapper>().Object, new NearestNeighborsFinder());
-            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1);
+            var resultParameters = parameterFinder.GetNearest(knownParameters, "Model1", 1).Result;
             Assert.IsNotNull(resultParameters);
             Assert.AreEqual(0, resultParameters.Count);
         }
@@ -203,7 +204,6 @@ namespace Tests
                 new StringParameterValue("Parameter8", "Parameter8")
             };
             var autoMocker = new AutoMocker();
-            autoMocker.GetMock<IServerWrapper>().Setup(l => l.GetLaunchConfigurations()).Returns(() => ClassCreator.GetLaunchConfigurations());
             var parameterFinder = autoMocker.CreateInstance<ParameterFinder>();
             var resultParameters = parameterFinder.GetDefault(knownParameters, paremeterInfos);
             Assert.IsNotNull(resultParameters);

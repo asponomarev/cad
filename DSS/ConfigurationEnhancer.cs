@@ -3,6 +3,7 @@ using UhlnocsServer.Calculations;
 using UhlnocsServer.Models;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
+using UhlnocsServer.Optimizations;
 using UhlnocsServer.Services;
 
 namespace DSS
@@ -14,15 +15,15 @@ namespace DSS
         private readonly IServerWrapper _serverWrapper;
         private readonly INearestNeighborsFinder _nearestNeighborsFinder;
 
-        public ConfigurationEnhancer() 
+        public ConfigurationEnhancer(ModelService modelService, CalculationsOptimizer calculationsOptimizer) 
         {
-            _serverWrapper = new ServerWrapper();
+            _serverWrapper = new ServerWrapper(modelService, calculationsOptimizer);
             _nearestNeighborsFinder = new NearestNeighborsFinder();
             _modelSelector = new ModelSelector(_serverWrapper);
             _parameterFinder = new ParameterFinder(_serverWrapper, _nearestNeighborsFinder);
         }
 
-        public LaunchConfiguration GetModifiedLaunchConfiguration(LaunchConfiguration launchConfiguration)
+        public async Task<LaunchConfiguration> GetModifiedLaunchConfiguration(LaunchConfiguration launchConfiguration)
         {
             var fullParameters = new List<ParameterValue>();
             var suitableModels = _modelSelector.GetSuitableModels(launchConfiguration.Characteristics);
@@ -40,7 +41,7 @@ namespace DSS
                     }
                 }
 
-                ModelConfiguration modelConfig = _serverWrapper.GetModelConfiguration(modelId);
+                ModelConfiguration modelConfig = await _serverWrapper.GetModelConfiguration(modelId);
                 if (modelConfig != null)
                 {
                     if (modelConfig.ParametersInfo.Count == knownParametersForCurrentModel.Count)
@@ -48,7 +49,7 @@ namespace DSS
                         break;
                     }
                     //ищем полное совпадение
-                    var matchingParameters = _parameterFinder.GetMatching(knownParametersForCurrentModel, modelId);
+                    var matchingParameters = await _parameterFinder.GetMatching(knownParametersForCurrentModel, modelId);
                     if (matchingParameters != null && matchingParameters.Count > 0)
                     {
                         knownParametersForCurrentModel = matchingParameters as List<ParameterValue>;
@@ -56,7 +57,7 @@ namespace DSS
                     //ищем соседей
                     else
                     {
-                        var nearestParameters = _parameterFinder.GetNearest(knownParametersForCurrentModel, modelId, launchConfiguration.SearchAccuracy);
+                        var nearestParameters = await _parameterFinder.GetNearest(knownParametersForCurrentModel, modelId, launchConfiguration.SearchAccuracy);
                         if (nearestParameters != null && nearestParameters.Count > 0)
                         {
                             knownParametersForCurrentModel = nearestParameters as List<ParameterValue>;
