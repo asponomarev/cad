@@ -25,14 +25,30 @@ namespace UhlnocsServer.Optimizations
         {
             AlgorithmType type = algorithmElement.GetProperty(nameof(Type)).Deserialize<AlgorithmType>(PropertyBase.PropertySerializerOptions);
 
-            // later will be changed to "if type == a..., if type == b..."
             if (type == AlgorithmType.SmartConstantStep)
             {
                 return algorithmElement.Deserialize<SmartConstantStep>(PropertyBase.PropertySerializerOptions);
             }
-            // else if ...
-            // usual constant step
-            return algorithmElement.Deserialize<ConstantStep>(PropertyBase.PropertySerializerOptions);
+            else if (type == AlgorithmType.BinarySearch)
+            {
+                return algorithmElement.Deserialize<BinarySearch>(PropertyBase.PropertySerializerOptions);
+            }
+            else if (type == AlgorithmType.SmartBinarySearch)
+            {
+                return algorithmElement.Deserialize<SmartBinarySearch>(PropertyBase.PropertySerializerOptions);
+            }
+            else if (type == AlgorithmType.GoldenSection)
+            {
+                return algorithmElement.Deserialize<GoldenSection>(PropertyBase.PropertySerializerOptions);
+            }
+            else if (type == AlgorithmType.SmartGoldenSection)
+            {
+                return algorithmElement.Deserialize<SmartGoldenSection>(PropertyBase.PropertySerializerOptions);
+            }
+            else // regular constant step
+            {
+                return algorithmElement.Deserialize<ConstantStep>(PropertyBase.PropertySerializerOptions);
+            }
         }
 
         public static string ToJsonString(OptimizationAlgorithm algorithm)
