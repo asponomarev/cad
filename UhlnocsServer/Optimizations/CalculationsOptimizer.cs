@@ -16,6 +16,9 @@ namespace UhlnocsServer.Optimizations
 {
     public class CalculationsOptimizer
     {
+        private const string PreparerAndCollectorAgrumentsFormatString = "--in_file_path {0} --out_file_path {1}";
+        private const string LogFileName = "log";
+
         private readonly IRepository<Model> ModelsRepository;
         private readonly IRepository<Launch> LaunchesRepository;
         private readonly IRepository<Calculation> CalculationsRepository;
@@ -38,41 +41,54 @@ namespace UhlnocsServer.Optimizations
             CharacteristicsRepository = characteristicsRepository;
         }
 
-        // TODO: LaunchConfiguration class contains more information than model needs
-        // TODO: think about try-catches
-        public async Task OptimizeLaunch(LaunchConfiguration launchConfiguration)
+        // method for DSS
+        public Task<List<List<ParameterValue>>> GetModelParametersValues(string modelId)
         {
-            Launch launch = new Launch
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = launchConfiguration.Name,
-                Description = launchConfiguration.Description,
-                UserId = launchConfiguration.User,
-                UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
-                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
-                OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
-                RecalculateExisting = launchConfiguration.RecalculateExisting,
-                SearchAccuracy = launchConfiguration.SearchAccuracy,
-                Status = LaunchStatus.Running,
-                StartTime = DateTime.Now,
-                EndTime = null,
-                Duration = null
-            };
+            List<List<ParameterValue>> modelParametersValues = new();
             try
             {
-                await LaunchesRepository.Create(launch);
+                /*
+                 * SELECT parameters_sets.parameters_values
+                 * FROM parameters_sets
+                 * INNER JOIN calculations
+                 * ON calculations.parameters_hash = parameters_sets.hash
+                 * WHERE calculations.model_id = modelId;
+                 */
+                List<JsonDocument> parametersValuesDocuments = (from ps in ParametersRepository.Get()
+                                                                join c in CalculationsRepository.Get()
+                                                                on ps.Hash equals c.ParametersHash
+                                                                where c.ModelId == modelId
+                                                                select ps.ParametersValuesJson).ToList();
+
+                foreach (JsonDocument parametersValuesDocument in parametersValuesDocuments)
+                {
+                    modelParametersValues.Add(ParameterValue.ListFromJsonDocument(parametersValuesDocument));
+                }
             }
             catch (Exception exception)
             {
                 ThrowInternalException(exception);
             }
+            return Task.FromResult(modelParametersValues);
+        }
 
+        public async Task OptimizeLaunch(LaunchConfiguration launchConfiguration)
+        {
+            // create launch
+            Launch launch = await CreateLaunch(launchConfiguration);
+            if (launch == null)
+            {
+                return;
+            }
+
+            // get ids of models which will be used to calculate characteristics in this launch
             List<string> modelsIds = new();
             foreach (CharacteristicWithModel characteristic in launchConfiguration.Characteristics)
             {
                 modelsIds.Add(characteristic.Id);
             }
 
+            // make sublists of parameters for each model from list that contains all parameters for all models
             Dictionary<string, List<ParameterValue>> parametersOfModels = new();
             foreach (string modelId in modelsIds)
             {
@@ -90,49 +106,34 @@ namespace UhlnocsServer.Optimizations
                 }
             }
 
-            Dictionary<string, List<CharacteristicWithModel>> characteristicsOfModels = new();
-            foreach (string modelId in modelsIds)
-            {
-                characteristicsOfModels[modelId] = new();
-            }
-            foreach (CharacteristicWithModel characteristic in launchConfiguration.Characteristics)
-            {
-                characteristicsOfModels[characteristic.Model].Add(characteristic);
-            }
-
-            Task[] modelsTasks = new Task[modelsIds.Count];
+            // create, start and wait models tasks
+            Task<ModelStatus>[] modelsTasks = new Task<ModelStatus>[modelsIds.Count];
             for (int i = 0; i < modelsIds.Count; ++i)
             {
-                LaunchConfiguration modelLaunchConfiguration = new LaunchConfiguration(launchConfiguration.Name,
-                                                                                       launchConfiguration.Description,
-                                                                                       launchConfiguration.User,
-                                                                                       parametersOfModels[modelsIds[i]],
-                                                                                       launchConfiguration.UserParameters,
-                                                                                       characteristicsOfModels[modelsIds[i]],
-                                                                                       launchConfiguration.UserCharacteristics,
-                                                                                       launchConfiguration.OptimizationAlgorithm,
-                                                                                       launchConfiguration.RecalculateExisting,
-                                                                                       launchConfiguration.SearchAccuracy);
-                Task modelTask = Task.Run(() => OptimizeModel(launch.Id, modelsIds[i], modelLaunchConfiguration));
+                Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launch.Id,
+                                                                           modelsIds[i],
+                                                                           parametersOfModels[modelsIds[i]],
+                                                                           launchConfiguration.OptimizationAlgorithm));
                 modelsTasks[i] = modelTask;
             }
             Task.WaitAll(modelsTasks);
 
-            launch.EndTime = DateTime.Now;
-            launch.Status = LaunchStatus.Finished;
-            try
-            {
-                await LaunchesRepository.Update(launch);
-            }
-            catch (Exception exception)
-            {
-                ThrowInternalException(exception);
-            }
+            // update launch
+            LaunchStatus launchStatus = GetLaunchStatus(modelsTasks);
+            await OnLaunchFinished(launch, launchStatus);
         }
 
-        // TODO: think about try-catches
-        public async Task OptimizeModel(string launchId, string modelId, LaunchConfiguration modelLaunchConfiguration)
+        // will be beautified later
+        public async Task OptimizeModel(string launchId,
+                                        string modelId,
+                                        List<ParameterValue> parameters,
+                                        OptimizationAlgorithm optimizationAlgorithm)
         {
+            Task<List<CharacteristicValue>>[] calculationsTasks = null; // WAS: Task[] calculationsTasks = null;
+            string variableParameterId = optimizationAlgorithm.VariableParameter;
+            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);// НУЖЕН ЛИ ТЕПЕРЬ ModelConfiguration.GetParameterInfo?
+            PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
+
             Model? model = null;
             try
             {
@@ -140,19 +141,16 @@ namespace UhlnocsServer.Optimizations
             }
             catch (Exception exception)
             {
-                ThrowInternalException(exception);
+                string LogFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to get model due to database error!" + Environment.NewLine +
+                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(LogFilePath, message);
+                return ModelStatus.FinishedAllFailed;
             }
             ModelConfiguration modelConfiguration = ModelConfiguration.FromJsonDocument(model.Configuration);
 
-            bool noCalculationError = true; // ошибка расчета характеристик
-            List<ParameterValue> calculationParameters = new(); // параметры модели для проведения расчетов
-            string variableParameterId = modelLaunchConfiguration.OptimizationAlgorithm.VariableParameter;
-            ParameterValue variableParameter = modelLaunchConfiguration.GetParameterValue(variableParameterId);
-            PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
-
             /* Constant Step Search */
-            Task[] calculationsTasks = null;
-            if (modelLaunchConfiguration.OptimizationAlgorithm is ConstantStep constantStep)
+            if (OptimizationAlgorithm is ConstantStep constantStep)
             {
                 if (valueType == PropertyValueType.Bool)
                 {
@@ -165,354 +163,165 @@ namespace UhlnocsServer.Optimizations
                     StringParameterInfo parameterInfo = modelConfiguration.GetParameterInfo<StringParameterInfo>(variableParameterId);
                     constantStep.Iterations = parameterInfo.PossibleValues.Count;
                 }
-                calculationsTasks = new Task[constantStep.Iterations];
+                calculationsTasks = new Task<List<CharacteristicValue>>[constantStep.Iterations];
 
                 for (int i = 0; i < constantStep.Iterations; ++i)
                 {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            if (valueType == PropertyValueType.String)
-                            {
-                                StringParameterInfo parameterInfo = modelConfiguration.GetParameterInfo<StringParameterInfo>(variableParameterId);
-                                string variableParameterValue = parameterInfo.PossibleValues[i];
-                                calculationParameters.Add(new StringParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else if (valueType == PropertyValueType.Bool)
-                            {
-                                bool variableParameterValue = (i == 0) ? true : false;
-                                calculationParameters.Add(new BoolParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else if (valueType == PropertyValueType.Double)
-                            {
-                                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                                double variableParameterValue = firstValue + constantStep.Step * i;
-                                calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else  // int
-                            {
-                                int firstValue = (variableParameter as IntParameterValue).Value;
-                                int variableParameterValue = firstValue + (int)Math.Round(constantStep.Step * i);
-                                calculationParameters.Add(new IntParameterValue(variableParameterId, variableParameterValue));
-                            }
-                        }
-                    }
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId,
+                                                                                                        i, valueType, modelConfiguration, variableParameter);
+
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[i] = calculationTask;
                 }
                 Task.WaitAll(calculationsTasks);
             }
 
             /* Smart Constant Step Search */
-            else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartConstantStep smartConstantStep)
+            else if (OptimizationAlgorithm is SmartConstantStep smartConstantStep)
             {
+                calculationsTasks = new Task[smartConstantStep.MaxIterations]; 
+                smartConstantStep.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                bool PointsStillGood = true;
                 int iteration = 0;
-                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                double variableParameterValue = 0;
-                double throughputCharacteristicValue = 0;
+
                 do
                 {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            variableParameterValue = firstValue + smartConstantStep.Step * iteration;
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-
-
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[iteration] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+                    
                     if (calculationCharacteristics == null)
                     {
-                        noCalculationError = false;
-                    }
-                    else
-                    {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
-                    }
-
-                    ++iteration;
-                }
-                while (noCalculationError &&
-                       iteration < smartConstantStep.MaxIterations &&
-                       OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, smartConstantStep.Accuracy));
-            }
-
-            /* Binary Search */
-            else if (modelLaunchConfiguration.OptimizationAlgorithm is BinarySearch binarySearch)
-            {
-                binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
-                binarySearch.LastValue = binarySearch.MaxRate;
-
-                // first iter check
-
-                for (int i = 1; i < binarySearch.Iterations; ++i)
-                {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            double variableParameterValue = BinarySearch.MakeParameterValue(binarySearch.FirstValue, binarySearch.LastValue);
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
-                    if (calculationCharacteristics == null)
-                    {
-                        noCalculationError = false;
                         break;
                     }
                     else
                     {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
-                        if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, binarySearch.Accuracy))
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
+                        PointsStillGood = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                    }
+                    ++iteration;
+                }
+                while (iteration < smartConstantStep.MaxIterations && PointsStillGood);
+            }
+
+            /* Binary Search */
+            else if (OptimizationAlgorithm is BinarySearch binarySearch)
+            {
+                calculationsTasks = new Task[binarySearch.MaxIterations];
+                binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+
+                for (int i = 0; i < binarySearch.Iterations; ++i)
+                {
+                    List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;                   
+                   
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
+                        int StatusCode = binarySearch.MoveBorder(throughputCharacteristicValue, i);
+                        if (StatusCode == -1 || StatusCode == -2)
                         {
-                            binarySearch.FirstValue = variableParameterValue;
-                        }
-                        else
-                        {
-                            binarySearch.LastValue = variableParameterValue;
+                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
                         }
                     }
                 }
             }
 
             /* Smart Binary Search */
-            else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartBinarySearch smartBinarySearch)
+            else if (OptimizationAlgorithm is SmartBinarySearch smartBinarySearch)
             {
+                calculationsTasks = new Task[smartBinarySearch.MaxIterations];
+                smartBinarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
+                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
                 int iteration = 0;
-                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                double lastValue = smartBinarySearch.MaxRate;
-                double variableParameterValue = 0;
-                string firstChangedBorder = null;
-                bool bothBordersChanged = false;
+
                 do
                 {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            variableParameterValue = (firstValue + lastValue) / 2;
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+                    
                     if (calculationCharacteristics == null)
                     {
-                        noCalculationError = false;
-                    }
-                    else
-                    {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartBinarySearch.ThroughputCharacteristic);
-                        if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, binarySearch.Accuracy))
-                        {
-                            firstValue = variableParameterValue;
-                            if (firstChangedBorder == null)
-                            {
-                                firstChangedBorder = "Left";
-                            }
-                            else if (firstChangedBorder == "Right")
-                            {
-                                bothBordersChanged = true;
-                            }
-                            else if (firstChangedBorder == "Left" && bothBordersChanged == true)
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            lastValue = variableParameterValue;
-                            if (firstChangedBorder == null)
-                            {
-                                firstChangedBorder = "Right";
-                            }
-                            else if (firstChangedBorder == "Left")
-                            {
-                                bothBordersChanged = true;
-                            }
-                            else if (firstChangedBorder == "Right" && bothBordersChanged == true)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    ++iteration;
-                }
-                while (noCalculationError && iteration < smartBinarySearch.MaxIterations);
-            }
-
-            /* Golden Section Search */
-            else if (modelLaunchConfiguration.OptimizationAlgorithm is GoldenSection goldenSection)
-            {
-                const double PHI_number = 1.618; // Fibonacci number
-                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                double lastValue = goldenSection.MaxRate;
-                double variableParameterValue = 0;
-                double X1;
-                double X2;
-                string lastFoundPoint;
-                string nextPoint = "X1";
-                for (int i = 0; i < goldenSection.Iterations; ++i)
-                {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            if (nextPoint == "X1")
-                            {
-                                X1 = lastValue - (lastValue - firstValue) / PHI_number;
-                                variableParameterValue = X1;
-                                lastFoundPoint == "X1";
-                                nextPoint = "X2";
-                            }
-                            else // nextPoint = X2
-                            {
-                                X2 = firstValue + (lastValue - firstValue) / PHI_number;
-                                variableParameterValue = X2;
-                                lastFoundPoint = "X2";
-                                nextPoint = "X1";
-                            }
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
-                    if (calculationCharacteristics == null)
-                    {
-                        noCalculationError = false;
                         break;
                     }
                     else
                     {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, goldenSection.ThroughputCharacteristic);
-                        if (lastFoundPoint == "X1")
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartBinarySearch.ThroughputCharacteristic);
+                        StatusCode = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
+                    }
+                    ++iteration;
+                }
+                while (StatusCode == 1 && iteration < smartBinarySearch.MaxIterations);
+            }
+
+            /* Golden Section Search */
+            else if (OptimizationAlgorithm is GoldenSection goldenSection)
+            {
+                calculationsTasks = new Task[goldenSection.MaxIterations];
+                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+
+                for (int i = 0; i < goldenSection.Iterations; ++i)
+                {                 
+                    List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, goldenSection.ThroughputCharacteristic);
+                        int StatusCode = goldenSection.MoveBorder(throughputCharacteristicValue, i);
+                        if (StatusCode == -1 || StatusCode == -2)
                         {
-                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy) == false)
-                            {
-                                lastValue = X1;
-                                nextPoint = "X1";
-                            }
-                        }
-                        else // lastFoundPoint == X2
-                        {
-                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy))
-                            {
-                                firstValue = X2;
-                            }
-                            else // X2 - bad
-                            {
-                                firstValue = X1;
-                                lastValue = X2;
-                            }
-                        }
+                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
+                        }                               
                     }
                 }
             }
 
             /* Smart Golden Section Search */
-            else if (modelLaunchConfiguration.OptimizationAlgorithm is SmartGoldenSection smartGoldenSection)
+            else if (OptimizationAlgorithm is SmartGoldenSection smartGoldenSection)
             {
-                const double PHI_number = 1.618; // Fibonacci number
-                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                double lastValue = smartGoldenSection.MaxRate;
-                double variableParameterValue = 0;
-                double X1;
-                double X2;
-                string lastFoundPoint;
-                string nextPoint = "X1";
-                bool inMiddleSegment = false;
+                calculationsTasks = new Task[goldenSection.MaxIterations];
+                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
+                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
+                int iteration = 0;
+
                 do
                 {
-                    foreach (ParameterValue parameter in modelLaunchConfiguration.Parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            if (nextPoint == "X1")
-                            {
-                                X1 = lastValue - (lastValue - firstValue) / PHI_number;
-                                variableParameterValue = X1;
-                                lastFoundPoint == "X1";
-                                nextPoint = "X2";
-                            }
-                            else // nextPoint = X2
-                            {
-                                X2 = firstValue + (lastValue - firstValue) / PHI_number;
-                                variableParameterValue = X2;
-                                lastFoundPoint = "X2";
-                                nextPoint = "X1";
-                            }
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
+                    List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     if (calculationCharacteristics == null)
                     {
-                        noCalculationError = false;
                         break;
                     }
                     else
                     {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartGoldenSection.ThroughputCharacteristic);
-                        if (lastFoundPoint == "X1")
-                        {
-                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy) == false)
-                            {
-                                lastValue = X1;
-                                nextPoint = "X1";
-                                if (inMiddleSegment == true)
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                        else // lastFoundPoint == X2
-                        {
-                            if (OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, goldenSection.Accuracy))
-                            {
-                                firstValue = X2;
-                                if (inMiddleSegment == true)
-                                {
-                                    break;
-                                }
-                            }
-                            else // X2 - bad
-                            {
-                                firstValue = X1;
-                                lastValue = X2;
-                                inMiddleSegment = true;
-                            }
-                        }
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartGoldenSection.ThroughputCharacteristic);
+                        StatusCode = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
                     }
+                    ++iteration;
                 }
-                while (noCalculationError && iteration < smartGoldenSection.MaxIterations);
+                while (StatusCode == 1 && iteration < smartGoldenSection.MaxIterations);
             }
-            // c vТут будет какой-то код Саши
+            return GetModelStatus(calculationsTasks);
         }
 
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,
@@ -522,57 +331,19 @@ namespace UhlnocsServer.Optimizations
             string modelId = modelConfiguration.Id;
 
             // CREATE PARAMETERS
-            string parametersHash = ParameterValue.GetHashCode(parameters, modelId);
-            ParametersSet parametersSet = new ParametersSet
+            string parametersHash = await CreateParameters(parameters, modelId, launchId);
+            if (parametersHash == null)
             {
-                Hash = parametersHash,
-                ParametersValuesJson = ParameterValue.ListToJsonDocument(parameters)
-            };
-            bool noCreateParametersSetError = true;
-            try
-            {
-                await ParametersRepository.Create(parametersSet);
-            }
-            catch (Exception)
-            {
-                noCreateParametersSetError = false;
-            }
-            if (!noCreateParametersSetError)
-            {
-                // think about logging this
                 return null;
             }
 
             // CREATE CALCULATION
-            string calculationId = Guid.NewGuid().ToString();
-            Calculation calculation = new()
+            Calculation calculation = await CreateCalculation(launchId, modelId, parametersHash);
+            if (calculation == null)
             {
-                Id = calculationId,
-                LaunchId = launchId,
-                ModelId = modelId,
-                ParametersHash = parametersHash,
-                CharacteristicsHash = null,
-                ReallyCalculated = true,
-                Status = CalculationStatus.Running,
-                StartTime = DateTime.Now,
-                EndTime = null,
-                Duration = null,
-                Message = null
-            };
-            bool noCreateCalculationError = true;
-            try
-            {
-                await CalculationsRepository.Create(calculation);
-            }
-            catch (Exception)
-            {
-                noCreateCalculationError = false;
-            }
-            if (!noCreateCalculationError)
-            {
-                // think about logging this
                 return null;
             }
+            string calculationId = calculation.Id;
 
             // PREPARE PARAMETERS
             string modelPreparerFilePath = GetModelFilePath(modelId, modelConfiguration.PreparerFilePath);
@@ -588,13 +359,133 @@ namespace UhlnocsServer.Optimizations
             }
 
             // RUN MODEL
+            string modelExecutableFilePath = GetModelExecutableFilePath(modelId, modelConfiguration.ModelFilePath);
+            string modelFormatCharacteristicsFilePath = GetCalculationTmpFilePath(launchId, modelId, calculationId, "characteristics_in_model_format");
+            bool noModelError = await RunModel(modelExecutableFilePath, modelConfiguration.ModelArgumentsFormatString,
+                                               modelConfiguration.CollectFromStdout, modelConfiguration.ModelOkExitCode,
+                                               modelFormatParametersFilePath, modelFormatCharacteristicsFilePath, calculation);
+            if (!noModelError)
+            {
+                return null;
+            }
 
-            // COLLECT CHARACTERISTICS
-
-            return new List<CharacteristicValue>(); // will be changed later
+            // COLLECT, READ AND CREATE CHARACTERISTICS
+            string modelCollectorFilePath = GetModelExecutableFilePath(modelId, modelConfiguration.CollectorFilePath);
+            string cadFormatCharacteristicsFilePath = GetCalculationTmpFilePath(launchId, modelId, calculationId, "characteristics_in_cad_format");
+            return await CollectCharacteristics(modelCollectorFilePath, modelConfiguration.CollectorOkExitCode,
+                                                modelFormatCharacteristicsFilePath, cadFormatCharacteristicsFilePath,
+                                                calculation);
         }
 
-        public async Task<bool> PrepareParameters(string modelPreparerFilePath,
+        private async Task<Launch> CreateLaunch(LaunchConfiguration launchConfiguration)
+        {
+            Launch launch = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = launchConfiguration.Name,
+                Description = launchConfiguration.Description,
+                UserId = launchConfiguration.User,
+                UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
+                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
+                OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
+                RecalculateExisting = launchConfiguration.RecalculateExisting,
+                SearchAccuracy = launchConfiguration.SearchAccuracy,
+                Status = LaunchStatus.Running,
+                StartTime = DateTime.Now,
+                EndTime = null,
+                Duration = null
+            };
+            bool noCreateLaunchError = true;
+            try
+            {
+                await LaunchesRepository.Create(launch);
+            }
+            catch (Exception exception)
+            {
+                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
+                string message = "Unable to create launch due to database error!" + Environment.NewLine +
+                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(LogFilePath, message);
+                noCreateLaunchError = false;
+            }
+            return (noCreateLaunchError) ? launch : null;
+        }
+
+        private LaunchStatus GetLaunchStatus(Task<ModelStatus>[] modelsTasks)
+        {
+            int totalTasks = modelsTasks.Length;
+            int modelsNoFailed = 0;
+            int modelsAllFailed = 0;
+            foreach (Task<ModelStatus> task in modelsTasks)
+            {
+                if (task.Result == ModelStatus.FinishedNoFailed)
+                {
+                    ++modelsNoFailed;
+                }
+                else if (task.Result == ModelStatus.FinishedAllFailed) { }
+                {
+                    ++modelsAllFailed;
+                }
+            }
+
+            if (totalTasks == modelsNoFailed)
+            {
+                return LaunchStatus.FinishedNoFailed;
+            }
+            if (totalTasks == modelsAllFailed)
+            {
+                return LaunchStatus.FinishedAllFailed;
+            }
+            return LaunchStatus.FinishedSomeFailed;
+        }
+
+        private async Task OnLaunchFinished(Launch launch, LaunchStatus launchStatus)
+        {
+            launch.EndTime = DateTime.Now;
+            launch.Duration = launch.EndTime - launch.StartTime;
+            launch.Status = launchStatus;
+            try
+            {
+                await LaunchesRepository.Update(launch);
+            }
+            catch (Exception exception)
+            {
+                string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
+                string message = "Unable to update launch due to database error!" + Environment.NewLine +
+                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(LogFilePath, message);
+            }
+        }
+
+        private ModelStatus GetModelStatus(Task<List<CharacteristicValue>>[] calculationsTasks)
+        {
+            int totalTasks = calculationsTasks.Length;
+            int completedTasks = 0;
+            int failedTasks = 0;
+            foreach (Task<List<CharacteristicValue>> task in calculationsTasks)
+            {
+                if (task.Result == null)
+                {
+                    ++failedTasks;
+                }
+                else
+                {
+                    ++completedTasks;
+                }
+            }
+
+            if (totalTasks == completedTasks)
+            {
+                return ModelStatus.FinishedNoFailed;
+            }
+            if (totalTasks == failedTasks)
+            {
+                return ModelStatus.FinishedAllFailed;
+            }
+            return ModelStatus.FinishedSomeFailed;
+        }
+
+        private async Task<bool> PrepareParameters(string preparerFilePath,
                                                   int preparerOkExitCode,
                                                   string cadFormatParametersFilePath,
                                                   string modelFormatParametersFilePath,
@@ -607,42 +498,286 @@ namespace UhlnocsServer.Optimizations
                 string parametersJson = ParameterValue.ListToJsonString(parameters);
                 File.WriteAllText(cadFormatParametersFilePath, parametersJson);
 
-                Process prepareProcess = new Process();
-                prepareProcess.StartInfo.FileName = modelPreparerFilePath;
-                prepareProcess.StartInfo.CreateNoWindow = true;
-                prepareProcess.StartInfo.Arguments = $"--in_file_path {cadFormatParametersFilePath} --out_file_path {modelFormatParametersFilePath}";
+                Process prepareProcess = ConfigureProcess(preparerFilePath,
+                                                          PreparerAndCollectorAgrumentsFormatString,
+                                                          new string[] { cadFormatParametersFilePath, modelFormatParametersFilePath });
                 prepareProcess.Start();
                 prepareProcess.WaitForExit();
                 if (prepareProcess.ExitCode != preparerOkExitCode)
                 {
-                    throw new Exception($"Preparer process finished with exit code {prepareProcess.ExitCode}");
+                    throw new Exception($"Preparer process finished with not ok exit code {prepareProcess.ExitCode}");
                 }
             }
             catch (Exception exception)
             {
-                calculation.Message = GetInternalExceptionMessage(exception);
-                calculation.EndTime = DateTime.Now;
-                calculation.Duration = calculation.EndTime - calculation.StartTime;
-                calculation.Status = CalculationStatus.Failed;
-                try
-                {                
-                    await CalculationsRepository.Update(calculation);
-                } 
-                catch (Exception)
-                {
-                    // think about logging this
-                }
+                await OnCalculationException(calculation, exception, "Preparation stage error happened!");
                 noPreparerError = false;
             }
             return noPreparerError;
         }
 
-        public string GetTmpFilePath(string launchId, string modelId, string calculationId, string fileName)
+        private async Task<bool> RunModel(string modelFilePath,
+                                          string modelArgumentsFormatString,
+                                          bool collectFromStdout,
+                                          int modelOkExitCode,
+                                          string modelFormatParametersFilePath,
+                                          string modelFormatCharacteristicsFilePath,
+                                          Calculation calculation)
+        {
+            bool noModelError = true;
+            try
+            {
+                string[] modelProcessArguments;
+                if (collectFromStdout)
+                {
+                    modelProcessArguments = new string[] { modelFormatParametersFilePath };
+                }
+                else
+                {
+                    modelProcessArguments = new string[] { modelFormatParametersFilePath, modelFormatCharacteristicsFilePath };
+                }
+                Process modelProcess = ConfigureProcess(modelFilePath, modelArgumentsFormatString, modelProcessArguments);
+                if (collectFromStdout)
+                {
+                    // modelProcess.StartInfo.UseShellExecute = false;
+                    modelProcess.StartInfo.RedirectStandardOutput = true;
+                }
+
+                modelProcess.Start();
+                string modelOutput = string.Empty;
+                if (collectFromStdout)
+                {
+                    modelOutput = modelProcess.StandardOutput.ReadToEnd();
+                }
+                modelProcess.WaitForExit();
+
+                if (collectFromStdout)
+                {
+                    File.WriteAllText(modelFormatCharacteristicsFilePath, modelOutput);
+                }
+                if (modelProcess.ExitCode != modelOkExitCode)
+                {
+                    throw new Exception($"Model process finished with not ok exit code {modelProcess.ExitCode}");
+                }
+            }
+            catch (Exception exception)
+            {
+                await OnCalculationException(calculation, exception, "Modelling stage error happened!");
+                noModelError = false;
+            }
+            return noModelError;
+        }
+
+        private async Task<List<CharacteristicValue>> CollectCharacteristics(string collectorFilePath,
+                                                                             int collectorOkExitCode,
+                                                                             string modelFormatCharacteristicsFilePath,
+                                                                             string cadFormatCharacteristicsFilePath,
+                                                                             Calculation calculation)
+        {
+            List<CharacteristicValue> characteristics = null;
+            bool noCollectorError = true;
+            try
+            {
+                Process collectProcess = ConfigureProcess(collectorFilePath,
+                                                          PreparerAndCollectorAgrumentsFormatString,
+                                                          new string[] { modelFormatCharacteristicsFilePath, cadFormatCharacteristicsFilePath });
+                collectProcess.Start();
+                collectProcess.WaitForExit();
+                if (collectProcess.ExitCode != collectorOkExitCode)
+                {
+                    throw new Exception($"Collector process finished with not ok exit code {collectProcess.ExitCode}");
+                }
+
+                string characteristicsId = Guid.NewGuid().ToString();
+                characteristics = await ReadAndCreateCharacteristics(characteristicsId, cadFormatCharacteristicsFilePath);
+
+                await OnCalculationCompleted(calculation, characteristicsId);
+            }
+            catch (Exception exception)
+            {
+                await OnCalculationException(calculation, exception, "Collecting stage error happened!");
+                noCollectorError = false;
+            }
+            return (noCollectorError) ? characteristics : null;
+        }
+
+        private async Task<string> CreateParameters(List<ParameterValue> parameters, string modelId, string launchId)
+        {
+            string parametersHash = ParameterValue.GetHashCode(parameters, modelId);
+            ParametersSet parametersSet = new()
+            {
+                Hash = parametersHash,
+                ParametersValuesJson = ParameterValue.ListToJsonDocument(parameters)
+            };
+
+            bool noCreateParametersSetError = true;
+            try
+            {
+                await ParametersRepository.Create(parametersSet);
+            }
+            catch (Exception exception)
+            {
+                noCreateParametersSetError = false;
+                string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to create parameters set due to database exception!" + Environment.NewLine
+                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+
+            return (noCreateParametersSetError) ? parametersHash : null;
+        }
+
+        private async Task<Calculation> CreateCalculation(string launchId, string modelId, string parametersHash)
+        {
+            Calculation calculation = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                LaunchId = launchId,
+                ModelId = modelId,
+                ParametersHash = parametersHash,
+                CharacteristicsId = null,
+                ReallyCalculated = true,
+                Status = CalculationStatus.Running,
+                StartTime = DateTime.Now,
+                EndTime = null,
+                Duration = null,
+                Message = null
+            };
+
+            bool noCreateCalculationError = true;
+            try
+            {
+                await CalculationsRepository.Create(calculation);
+            }
+            catch (Exception exception)
+            {
+                noCreateCalculationError = false;
+                string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to create calculation due to database exception!" + Environment.NewLine
+                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+
+            return (noCreateCalculationError) ? calculation : null;
+        }
+
+        private static Process ConfigureProcess(string executableFilePath, string argumentsFormatString, string[] arguments)
+        {
+            Process process = new();
+            process.StartInfo.CreateNoWindow = true;
+
+            if (executableFilePath.EndsWith(".exe"))
+            {
+                process.StartInfo.FileName = executableFilePath;
+                process.StartInfo.Arguments = string.Format(argumentsFormatString, arguments);
+            }
+            else if (executableFilePath.EndsWith(".py"))
+            {
+                process.StartInfo.FileName = "python";
+                process.StartInfo.Arguments = $"{executableFilePath} {string.Format(argumentsFormatString, arguments)}";
+            }
+            else if (executableFilePath.EndsWith(".jar"))
+            {
+                process.StartInfo.FileName = "java";
+                process.StartInfo.Arguments = $"-jar {executableFilePath} {string.Format(argumentsFormatString, arguments)}";
+            }
+            else
+            {
+                throw new Exception($"Unknown type of executable file {executableFilePath}");
+            }
+
+            return process;
+        }
+
+        private async Task OnCalculationException(Calculation calculation, Exception exception, string messagePrefix)
+        {
+            calculation.Message = messagePrefix + Environment.NewLine + GetExceptionMessage(exception);
+            calculation.EndTime = DateTime.Now;
+            calculation.Duration = calculation.EndTime - calculation.StartTime;
+            calculation.Status = CalculationStatus.Failed;
+            try
+            {
+                await CalculationsRepository.Update(calculation);
+            }
+            catch (Exception databaseException)
+            {
+                string logFilePath = GetCalculationTmpFilePath(calculation.LaunchId, calculation.ModelId, calculation.Id, LogFileName);
+                string message = "Unable to write information about calculation exception to database due to database exception" +
+                                 Environment.NewLine + "Calculation exception info" + Environment.NewLine +
+                                 calculation.Message + Environment.NewLine +
+                                 "Database exception info" + Environment.NewLine +
+                                 GetExceptionMessage(databaseException) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+        }
+
+        private async Task<List<CharacteristicValue>> ReadAndCreateCharacteristics(string characteristicsId,
+                                                                                   string cadFormatCharacteristicsFilePath)
+        {
+            string characteristicsJson = File.ReadAllText(cadFormatCharacteristicsFilePath);
+            JsonDocument characteristicsDocument = JsonDocument.Parse(characteristicsJson);
+            List<CharacteristicValue> characteristics = CharacteristicValue.ListFromJsonElement(characteristicsDocument.RootElement);
+
+            CharacteristicsSet characteristicsSet = new()
+            {
+                Id = characteristicsId,
+                CharacteristicsValuesJson = characteristicsDocument
+            };
+            try
+            {
+                await CharacteristicsRepository.Create(characteristicsSet);
+            }
+            catch (Exception)
+            {
+                throw new Exception("Error while adding characteristics to database!");
+            }
+            return characteristics;
+        }
+
+        private async Task OnCalculationCompleted(Calculation calculation, string characteristicsId)
+        {
+            calculation.CharacteristicsId = characteristicsId;
+            calculation.EndTime = DateTime.Now;
+            calculation.Duration = calculation.EndTime - calculation.StartTime;
+            calculation.Status = CalculationStatus.Completed;
+            try
+            {
+                await CalculationsRepository.Update(calculation);
+            }
+            catch (Exception)
+            {
+                throw new Exception("Error while updating calculation after adding characteristics!");
+            }
+        }
+
+        private void SafeAppendToFile(string filePath, string message)
+        {
+            try
+            {
+                File.AppendAllText(filePath, message);
+            }
+            catch (Exception)
+            {
+                // cant do anything about this
+            }
+        }
+
+        private string GetLaunchTmpFilePath(string launchId, string fileName)
+        {
+            return $"{TmpDirectory}\\{launchId}\\{fileName}";
+        }
+
+        private string GetModelTmpFilePath(string launchId, string modelId, string fileName)
         {
             return $"{TmpDirectory}\\{launchId}\\{modelId}\\{fileName}";
         }
 
-        public string GetModelFilePath(string modelId, string relativeModelFilePath)
+        private string GetCalculationTmpFilePath(string launchId, string modelId, string calculationId, string fileName)
+        {
+            return $"{TmpDirectory}\\{launchId}\\{modelId}\\{calculationId}\\{fileName}";
+        }
+
+        private string GetModelExecutableFilePath(string modelId, string relativeModelFilePath)
         {
             return $"{ModelsDirectory}\\{modelId}\\{relativeModelFilePath}";
         }

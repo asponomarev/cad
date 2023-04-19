@@ -1,4 +1,7 @@
-﻿namespace UhlnocsServer.Optimizations
+﻿using UhlnocsServer.Models.Properties.Parameters.Values;
+using UhlnocsServer.Models.Properties.Parameters;
+
+namespace UhlnocsServer.Optimizations
 {
     public sealed class SmartConstantStep : OptimizationAlgorithm
     {
@@ -10,6 +13,10 @@
 
         public double Accuracy { get; set; }
 
+        public double FirstValue { get; set; }
+
+        public double CurrentRate { get; set; }
+
         public SmartConstantStep (string variableParameter,
                                   string throughputCharacteristic,
                                   double step,
@@ -20,6 +27,40 @@
             Step = step;
             MaxIterations = maxIterations;
             Accuracy = accuracy;
+        }
+
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
+        {
+            List<ParameterValue> calculationParameters = new();
+            foreach (ParameterValue parameter in parameters)
+            {
+                if (parameter.Id != variableParameterId)
+                {
+                    calculationParameters.Add(parameter);  // this may be bad
+                }
+                else
+                {
+                    if (i == 0)
+                    {
+                        CurrentRate = FirstValue;
+                    }
+                    else
+                    {
+                        CurrentRate = FirstValue + Step * iteration;
+                    }
+                    calculationParameters.Add(new DoubleParameterValue(variableParameterId, CurrentRate));
+                }
+            }
+            return calculationParameters;
+        }
+
+        public bool CheckPointIsGood(double throughput)
+        {
+            if (IsPointGood(CurrentRate, throughput, Accuracy))
+            {
+                return false;
+            }
+            return true;
         }
     }
 }
