@@ -68,7 +68,7 @@ namespace UhlnocsServer.Optimizations
                         {
                             X1 = LastValue - (LastValue - FirstValue) / PHI_number;
                             CurrentRate = X1;
-                            LastFoundPoint == "X1";
+                            LastFoundPoint = "X1";
                             NextPoint = "X2";
                         }
                         else // NextPoint = X2

@@ -40,7 +40,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (i == 0)
+                    if (iteration == 0)
                     {
                         CurrentRate = FirstValue;
                     }
