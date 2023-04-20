@@ -32,7 +32,7 @@ namespace UhlnocsServer.Optimizations
             LastValue = MaxRate;
         }
 
-        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId)
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
         {            
             List<ParameterValue> calculationParameters = new();
             foreach (ParameterValue parameter in parameters)
@@ -43,11 +43,11 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (i == 0)
+                    if (iteration == 0)
                     {
                         CurrentRate = FirstValue;
                     }
-                    else if (i == 1)
+                    else if (iteration == 1)
                     {
                         CurrentRate = LastValue;
                     }
@@ -70,24 +70,22 @@ namespace UhlnocsServer.Optimizations
                     return -1; // первая точка плохая
                 }
             }
-            else if (iteration == 1)
+            if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return -2; // последняя точка хорошая
                 }
             }
+            if (IsPointGood(CurrentRate, throughput, Accuracy))
+            {
+                FirstValue = CurrentRate;
+            }
             else
             {
-                if (IsPointGood(CurrentRate, throughput, Accuracy))
-                {
-                    FirstValue = CurrentRate;
+                LastValue = CurrentRate;
                 }
-                else
-                {
-                    LastValue = CurrentRate;
-                }
-            }
+            return 1;
         }
     }
 }

@@ -46,7 +46,7 @@ namespace UhlnocsServer.Optimizations
             InMiddleSegment = false;
         }
 
-        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId)
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
         {
             List<ParameterValue> calculationParameters = new();
 
@@ -58,11 +58,11 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (i == 0)
+                    if (iteration == 0)
                     {
                         CurrentRate = FirstValue;
                     }
-                    else if (i == 1)
+                    else if (iteration == 1)
                     {
                         CurrentRate = LastValue;
                     }
@@ -98,45 +98,43 @@ namespace UhlnocsServer.Optimizations
                     return -1; // первая точка плохая
                 }
             }
-            else if (iteration == 1)
+            if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return -2; // последняя точка хорошая
                 }
             }
-            else
+            if (LastFoundPoint == "X1")
             {
-                if (LastFoundPoint == "X1")
+                if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                 {
-                    if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
+                    LastValue = X1;
+                    NextPoint = "X1";
+                    if (InMiddleSegment == true)
                     {
-                        LastValue = X1;
-                        NextPoint = "X1";
-                        if (InMiddleSegment == true)
-                        {
-                            return 0; // точка насыщения найдена
-                        }
+                        return 0; // точка насыщения найдена
                     }
                 }
-                else // LastFoundPoint == X2
+            }
+            else // LastFoundPoint == X2
+            {
+                if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
-                    if (IsPointGood(CurrentRate, throughput, Accuracy))
+                    FirstValue = X2;
+                    if (InMiddleSegment == true)
                     {
-                        FirstValue = X2;
-                        if (InMiddleSegment == true)
-                        {
-                            return 0; // точка насыщения найдена
-                        }
-                    }
-                    else // X2 - bad
-                    {
-                        FirstValue = X1;
-                        LastValue = X2;
-                        InMiddleSegment = true;
+                        return 0; // точка насыщения найдена
                     }
                 }
-            }            
+                else // X2 - bad
+                {
+                    FirstValue = X1;
+                    LastValue = X2;
+                    InMiddleSegment = true;
+                }            
+            }
+            return 1;
         }
     }
 }

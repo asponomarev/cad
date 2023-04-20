@@ -38,7 +38,7 @@ namespace UhlnocsServer.Optimizations
             BothBordersChanged = false;
         }
 
-        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId)
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
         {
             List<ParameterValue> calculationParameters = new();
             double variableParameterValue = 0;
@@ -50,11 +50,11 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (i == 0)
+                    if (iteration == 0)
                     {
                         variableParameterValue = FirstValue;
                     }
-                    else if (i == 1)
+                    else if (iteration == 1)
                     {
                         variableParameterValue = LastValue;
                     }
@@ -78,48 +78,46 @@ namespace UhlnocsServer.Optimizations
                     return -1; // первая точка плохая
                 }
             }
-            else if (iteration == 1)
+            if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return -2; // последняя точка хорошая
                 }
             }
-            else
+            if (IsPointGood(CurrentRate, throughput, Accuracy))
             {
-                if (IsPointGood(CurrentRate, throughput, Accuracy))
+                FirstValue = CurrentRate;
+                if (FirstChangedBorder == null)
                 {
-                    FirstValue = CurrentRate;
-                    if (FirstChangedBorder == null)
-                    {
-                        FirstChangedBorder = "Left";
-                    }
-                    else if (FirstChangedBorder == "Right")
-                    {
-                        BothBordersChanged = true;
-                    }
-                    else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
-                    {
-                        return 0; // точка насыщения найдена
-                    }
+                    FirstChangedBorder = "Left";
                 }
-                else
+                else if (FirstChangedBorder == "Right")
                 {
-                    LastValue = CurrentRate;
-                    if (FirstChangedBorder == null)
-                    {
-                        FirstChangedBorder = "Right";
-                    }
-                    else if (FirstChangedBorder == "left")
-                    {
-                        BothBordersChanged = true;
-                    }
-                    else if (FirstChangedBorder == "Right" && BothBordersChanged == true)
-                    {
-                        return 0; // точка насыщения найдена
-                    }
+                    BothBordersChanged = true;
+                }
+                else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
+                {
+                    return 0; // точка насыщения найдена
                 }
             }
+            else
+            {
+                LastValue = CurrentRate;
+                if (FirstChangedBorder == null)
+                {
+                    FirstChangedBorder = "Right";
+                }
+                else if (FirstChangedBorder == "left")
+                {
+                    BothBordersChanged = true;
+                }
+                else if (FirstChangedBorder == "Right" && BothBordersChanged == true)
+                {
+                    return 0; // точка насыщения найдена
+                }
+            }
+            return 1;
         }      
     }
 }

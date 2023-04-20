@@ -47,13 +47,6 @@ namespace UhlnocsServer.Optimizations
             List<List<ParameterValue>> modelParametersValues = new();
             try
             {
-                /*
-                 * SELECT parameters_sets.parameters_values
-                 * FROM parameters_sets
-                 * INNER JOIN calculations
-                 * ON calculations.parameters_hash = parameters_sets.hash
-                 * WHERE calculations.model_id = modelId;
-                 */
                 List<JsonDocument> parametersValuesDocuments = (from ps in ParametersRepository.Get()
                                                                 join c in CalculationsRepository.Get()
                                                                 on ps.Hash equals c.ParametersHash
@@ -179,7 +172,7 @@ namespace UhlnocsServer.Optimizations
             /* Smart Constant Step Search */
             else if (optimizationAlgorithm is SmartConstantStep smartConstantStep)
             {
-                calculationsTasks = new Task[smartConstantStep.MaxIterations]; 
+                calculationsTasks = new Task<List<CharacteristicValue>>[smartConstantStep.MaxIterations]; 
                 smartConstantStep.FirstValue = (variableParameter as DoubleParameterValue).Value;
                 bool PointsStillGood = true;
                 int iteration = 0;
@@ -187,7 +180,7 @@ namespace UhlnocsServer.Optimizations
                 do
                 {
                     List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     
@@ -208,13 +201,13 @@ namespace UhlnocsServer.Optimizations
             /* Binary Search */
             else if (optimizationAlgorithm is BinarySearch binarySearch)
             {
-                calculationsTasks = new Task[binarySearch.MaxIterations];
+                calculationsTasks = new Task<List<CharacteristicValue>>[binarySearch.Iterations];
                 binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
 
                 for (int i = 0; i < binarySearch.Iterations; ++i)
                 {
-                    List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(parameters, variableParameterId, i);
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;                   
                    
@@ -237,7 +230,7 @@ namespace UhlnocsServer.Optimizations
             /* Smart Binary Search */
             else if (optimizationAlgorithm is SmartBinarySearch smartBinarySearch)
             {
-                calculationsTasks = new Task[smartBinarySearch.MaxIterations];
+                calculationsTasks = new Task<List<CharacteristicValue>>[smartBinarySearch.MaxIterations];
                 smartBinarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
                 // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
                 int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
@@ -245,9 +238,9 @@ namespace UhlnocsServer.Optimizations
 
                 do
                 {
-                    List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
-                    calculationsTasks[i] = calculationTask;
+                    List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     
                     if (calculationCharacteristics == null)
@@ -267,13 +260,13 @@ namespace UhlnocsServer.Optimizations
             /* Golden Section Search */
             else if (optimizationAlgorithm is GoldenSection goldenSection)
             {
-                calculationsTasks = new Task[goldenSection.MaxIterations];
+                calculationsTasks = new Task<List<CharacteristicValue>>[goldenSection.Iterations];
                 goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
 
                 for (int i = 0; i < goldenSection.Iterations; ++i)
                 {                 
-                    List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(parameters, variableParameterId, i);
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
 
@@ -296,17 +289,17 @@ namespace UhlnocsServer.Optimizations
             /* Smart Golden Section Search */
             else if (optimizationAlgorithm is SmartGoldenSection smartGoldenSection)
             {
-                calculationsTasks = new Task[goldenSection.MaxIterations];
-                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                calculationsTasks = new Task<List<CharacteristicValue>>[smartGoldenSection.MaxIterations];
+                smartGoldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
                 // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
                 int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
                 int iteration = 0;
 
                 do
                 {
-                    List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
-                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
-                    calculationsTasks[i] = calculationTask;
+                    List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     if (calculationCharacteristics == null)
                     {

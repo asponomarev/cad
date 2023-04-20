@@ -43,7 +43,7 @@ namespace UhlnocsServer.Optimizations
             NextPoint = "X1";
         }
 
-        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId)
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
         {
             List<ParameterValue> calculationParameters = new();
             foreach (ParameterValue parameter in parameters)
@@ -54,11 +54,11 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (i == 0)
+                    if (iteration == 0)
                     {
                         CurrentRate = FirstValue;
                     }
-                    else if (i == 1)
+                    else if (iteration == 1)
                     {
                         CurrentRate = LastValue;
                     }
@@ -94,37 +94,34 @@ namespace UhlnocsServer.Optimizations
                     return -1; // первая точка плохая
                 }
             }
-            else if (iteration == 1)
+            if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return -2; // последняя точка хорошая
                 }
             }
-            else
+            if (LastFoundPoint == "X1")
             {
-                if (LastFoundPoint == "X1")
+                if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                 {
-                    if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
-                    {
-                        LastValue = X1;
-                        NextPoint = "X1";
-                    }
-                }
-                else // LastFoundPoint == X2
-                {
-                    if (IsPointGood(CurrentRate, throughput, Accuracy))
-                    {
-                        FirstValue = X2;
-                    }
-                    else // X2 - bad
-                    {
-                        FirstValue = X1;
-                        LastValue = X2;
-                    }
+                    LastValue = X1;
+                    NextPoint = "X1";
                 }
             }
-            
+            else // LastFoundPoint == X2
+            {
+                if (IsPointGood(CurrentRate, throughput, Accuracy))
+                {
+                    FirstValue = X2;
+                }
+                else // X2 - bad
+                {
+                    FirstValue = X1;
+                    LastValue = X2;
+                }
+            }
+            return 1;
         }
     }
 }
