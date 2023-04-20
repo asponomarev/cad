@@ -67,7 +67,7 @@ namespace UhlnocsServer.Optimizations
             }
             catch (Exception exception) 
             {
-                ThrowInternalException(exception);            
+                ThrowInternalException(exception);
             }
             return Task.FromResult(modelParametersValues);
         }
@@ -131,7 +131,7 @@ namespace UhlnocsServer.Optimizations
         {
             Task<List<CharacteristicValue>>[] calculationsTasks = null;
             string variableParameterId = optimizationAlgorithm.VariableParameter;
-            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);
+            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);// НУЖЕН ЛИ ТЕПЕРЬ ModelConfiguration.GetParameterInfo?
             PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
 
             Model? model = null;
@@ -149,6 +149,7 @@ namespace UhlnocsServer.Optimizations
             }
             ModelConfiguration modelConfiguration = ModelConfiguration.FromJsonDocument(model.Configuration);
 
+            /* Constant Step Search */
             if (optimizationAlgorithm is ConstantStep constantStep)
             {
                 if (valueType == PropertyValueType.Bool)
@@ -166,88 +167,160 @@ namespace UhlnocsServer.Optimizations
 
                 for (int i = 0; i < constantStep.Iterations; ++i)
                 {
-                    List<ParameterValue> calculationParameters = new();
-                    foreach (ParameterValue parameter in parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            if (valueType == PropertyValueType.String)
-                            {
-                                StringParameterInfo parameterInfo = modelConfiguration.GetParameterInfo<StringParameterInfo>(variableParameterId);
-                                string variableParameterValue = parameterInfo.PossibleValues[i];
-                                calculationParameters.Add(new StringParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else if (valueType == PropertyValueType.Bool)
-                            {
-                                bool variableParameterValue = (i == 0) ? true : false;
-                                calculationParameters.Add(new BoolParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else if (valueType == PropertyValueType.Double)
-                            {
-                                double firstValue = (variableParameter as DoubleParameterValue).Value;
-                                double variableParameterValue = firstValue + constantStep.Step * i;
-                                calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                            }
-                            else  // int
-                            {
-                                int firstValue = (variableParameter as IntParameterValue).Value;
-                                int variableParameterValue = firstValue + (int)Math.Round(constantStep.Step * i);
-                                calculationParameters.Add(new IntParameterValue(variableParameterId, variableParameterValue));
-                            }
-                        }
-                    }
+                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId,
+                                                                                                        i, valueType, modelConfiguration, variableParameter);
+
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[i] = calculationTask;
                 }
                 Task.WaitAll(calculationsTasks);
             }
+
+            /* Smart Constant Step Search */
             else if (optimizationAlgorithm is SmartConstantStep smartConstantStep)
             {
+                calculationsTasks = new Task[smartConstantStep.MaxIterations]; 
+                smartConstantStep.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                bool PointsStillGood = true;
                 int iteration = 0;
-                bool noCalculationError = true;
-                double variableParameterValue = 0;
-                double throughputCharacteristicValue = 0;
+
                 do
                 {
+                    List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[iteration] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     
-                    List<ParameterValue> calculationParameters = new();
-                    foreach (ParameterValue parameter in parameters)
-                    {
-                        if (parameter.Id != variableParameterId)
-                        {
-                            calculationParameters.Add(parameter);  // this may be bad
-                        }
-                        else
-                        {
-                            double firstValue = (variableParameter as DoubleParameterValue).Value;
-                            variableParameterValue = firstValue + smartConstantStep.Step * iteration;
-                            calculationParameters.Add(new DoubleParameterValue(variableParameterId, variableParameterValue));
-                        }
-                    }
-
-                    List<CharacteristicValue> calculationCharacteristics = await OptimizeCalculation(launchId, modelConfiguration, calculationParameters);
                     if (calculationCharacteristics == null)
                     {
-                        noCalculationError = false;
+                        break;
                     }
                     else
                     {
-                        throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
-                                                                                               smartConstantStep.ThroughputCharacteristic);
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
+                        PointsStillGood = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
                     }
-                    
                     ++iteration;
                 }
-                while (noCalculationError &&
-                       iteration < smartConstantStep.MaxIterations && 
-                       OptimizationAlgorithm.IsPointGood(variableParameterValue, throughputCharacteristicValue, smartConstantStep.Accuracy));
+                while (iteration < smartConstantStep.MaxIterations && PointsStillGood);
             }
-            // else if ...
 
+            /* Binary Search */
+            else if (optimizationAlgorithm is BinarySearch binarySearch)
+            {
+                calculationsTasks = new Task[binarySearch.MaxIterations];
+                binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+
+                for (int i = 0; i < binarySearch.Iterations; ++i)
+                {
+                    List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;                   
+                   
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
+                        int StatusCode = binarySearch.MoveBorder(throughputCharacteristicValue, i);
+                        if (StatusCode == -1 || StatusCode == -2)
+                        {
+                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
+                        }
+                    }
+                }
+            }
+
+            /* Smart Binary Search */
+            else if (optimizationAlgorithm is SmartBinarySearch smartBinarySearch)
+            {
+                calculationsTasks = new Task[smartBinarySearch.MaxIterations];
+                smartBinarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
+                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
+                int iteration = 0;
+
+                do
+                {
+                    List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+                    
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartBinarySearch.ThroughputCharacteristic);
+                        StatusCode = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
+                    }
+                    ++iteration;
+                }
+                while (StatusCode == 1 && iteration < smartBinarySearch.MaxIterations);
+            }
+
+            /* Golden Section Search */
+            else if (optimizationAlgorithm is GoldenSection goldenSection)
+            {
+                calculationsTasks = new Task[goldenSection.MaxIterations];
+                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+
+                for (int i = 0; i < goldenSection.Iterations; ++i)
+                {                 
+                    List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, goldenSection.ThroughputCharacteristic);
+                        int StatusCode = goldenSection.MoveBorder(throughputCharacteristicValue, i);
+                        if (StatusCode == -1 || StatusCode == -2)
+                        {
+                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
+                        }                               
+                    }
+                }
+            }
+
+            /* Smart Golden Section Search */
+            else if (optimizationAlgorithm is SmartGoldenSection smartGoldenSection)
+            {
+                calculationsTasks = new Task[goldenSection.MaxIterations];
+                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
+                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
+                int iteration = 0;
+
+                do
+                {
+                    List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(modelLaunchConfiguration.Parameters, variableParameterId);
+                    Task calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    calculationsTasks[i] = calculationTask;
+                    List<CharacteristicValue> calculationCharacteristics = await calculationTask;
+                    if (calculationCharacteristics == null)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartGoldenSection.ThroughputCharacteristic);
+                        StatusCode = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
+                    }
+                    ++iteration;
+                }
+                while (StatusCode == 1 && iteration < smartGoldenSection.MaxIterations);
+            }
             return GetModelStatus(calculationsTasks);
         }
 
@@ -633,7 +706,7 @@ namespace UhlnocsServer.Optimizations
                                  "Database exception info" + Environment.NewLine +
                                  GetExceptionMessage(databaseException) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
-            }           
+            }
         }
 
         private async Task<List<CharacteristicValue>> ReadAndCreateCharacteristics(string characteristicsId,
@@ -642,7 +715,7 @@ namespace UhlnocsServer.Optimizations
             string characteristicsJson = File.ReadAllText(cadFormatCharacteristicsFilePath);
             JsonDocument characteristicsDocument = JsonDocument.Parse(characteristicsJson);
             List<CharacteristicValue> characteristics = CharacteristicValue.ListFromJsonElement(characteristicsDocument.RootElement);
-            
+
             CharacteristicsSet characteristicsSet = new()
             {
                 Id = characteristicsId,
@@ -684,7 +757,7 @@ namespace UhlnocsServer.Optimizations
             catch (Exception)
             {
                 // cant do anything about this
-            }           
+            }
         }
 
         private string GetLaunchTmpFilePath(string launchId, string fileName)
