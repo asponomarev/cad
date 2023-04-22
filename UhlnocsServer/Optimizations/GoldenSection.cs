@@ -85,20 +85,20 @@ namespace UhlnocsServer.Optimizations
             return calculationParameters;
         }
 
-        public int MoveBorder(double throughput, int iteration)
+        public AlgorithmStatus MoveBorder(double throughput, int iteration)
         {
             if (iteration == 0)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                 {
-                    return -1; // первая точка плохая
+                    return AlgorithmStatus.FirstPointIsBad;
                 }
             }
             if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
-                    return -2; // последняя точка хорошая
+                    return AlgorithmStatus.LastPointIsGood;
                 }
             }
             if (LastFoundPoint == "X1")
@@ -121,7 +121,7 @@ namespace UhlnocsServer.Optimizations
                     LastValue = X2;
                 }
             }
-            return 1;
+            return AlgorithmStatus.Calculating;
         }
     }
 }

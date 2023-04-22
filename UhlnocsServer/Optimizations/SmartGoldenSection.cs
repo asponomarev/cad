@@ -89,20 +89,20 @@ namespace UhlnocsServer.Optimizations
             return calculationParameters;
         }
 
-        public int MoveBorder(double throughput, int iteration)
+        public AlgorithmStatus MoveBorder(double throughput, int iteration)
         {
             if (iteration == 0)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                 {
-                    return -1; // первая точка плохая
+                    return AlgorithmStatus.FirstPointIsBad;
                 }
             }
             if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
-                    return -2; // последняя точка хорошая
+                    return AlgorithmStatus.LastPointIsGood;
                 }
             }
             if (LastFoundPoint == "X1")
@@ -113,7 +113,7 @@ namespace UhlnocsServer.Optimizations
                     NextPoint = "X1";
                     if (InMiddleSegment == true)
                     {
-                        return 0; // точка насыщения найдена
+                        return AlgorithmStatus.FoundSaturationPoint;
                     }
                 }
             }
@@ -124,7 +124,7 @@ namespace UhlnocsServer.Optimizations
                     FirstValue = X2;
                     if (InMiddleSegment == true)
                     {
-                        return 0; // точка насыщения найдена
+                        return AlgorithmStatus.FoundSaturationPoint;
                     }
                 }
                 else // X2 - bad
@@ -134,7 +134,7 @@ namespace UhlnocsServer.Optimizations
                     InMiddleSegment = true;
                 }            
             }
-            return 1;
+            return AlgorithmStatus.Calculating;
         }
     }
 }
