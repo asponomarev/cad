@@ -217,11 +217,12 @@ namespace UhlnocsServer.Optimizations
                     }
                     else
                     {
-                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, binarySearch.ThroughputCharacteristic);
-                        int StatusCode = binarySearch.MoveBorder(throughputCharacteristicValue, i);
-                        if (StatusCode == -1 || StatusCode == -2)
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
+                                                                                                        binarySearch.ThroughputCharacteristic);
+                        AlgorithmStatus Status = binarySearch.MoveBorder(throughputCharacteristicValue, i);
+                        if (Status == AlgorithmStatus.FirstPointIsBad || StatusCode == AlgorithmStatus.LastPointIsGood)
                         {
-                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
+                            break;                        
                         }
                     }
                 }
@@ -232,8 +233,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartBinarySearch.MaxIterations];
                 smartBinarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
-                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
-                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
+                AlgorithmStatus Status = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
@@ -249,12 +249,13 @@ namespace UhlnocsServer.Optimizations
                     }
                     else
                     {
-                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartBinarySearch.ThroughputCharacteristic);
-                        StatusCode = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
+                                                                                                        smartBinarySearch.ThroughputCharacteristic);
+                        Status = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
                 }
-                while (StatusCode == 1 && iteration < smartBinarySearch.MaxIterations);
+                while (Status == AlgorithmStatus.Calculating && iteration < smartBinarySearch.MaxIterations);
             }
 
             /* Golden Section Search */
@@ -276,11 +277,12 @@ namespace UhlnocsServer.Optimizations
                     }
                     else
                     {
-                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, goldenSection.ThroughputCharacteristic);
-                        int StatusCode = goldenSection.MoveBorder(throughputCharacteristicValue, i);
-                        if (StatusCode == -1 || StatusCode == -2)
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
+                                                                                                        goldenSection.ThroughputCharacteristic);
+                        AlgorithmStatus Status = goldenSection.MoveBorder(throughputCharacteristicValue, i);
+                        if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
                         {
-                            break; // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2)                          
+                            break;                        
                         }                               
                     }
                 }
@@ -291,8 +293,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartGoldenSection.MaxIterations];
                 smartGoldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
-                // TODO: Сказать пользователю, что первая точка плохая (-1) или последняя хорошая (-2), заменить StatusCode на bool
-                int StatusCode = 1; // 1 - продолжаем цикл, 0 - найдена точка насыщения, -1 - первая точка плохая, -2 - последняя точка хорошая                
+                AlgorithmStatus Status = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
@@ -307,12 +308,13 @@ namespace UhlnocsServer.Optimizations
                     }
                     else
                     {
-                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartGoldenSection.ThroughputCharacteristic);
-                        StatusCode = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
+                        double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
+                                                                                                        smartGoldenSection.ThroughputCharacteristic);
+                        Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
                 }
-                while (StatusCode == 1 && iteration < smartGoldenSection.MaxIterations);
+                while (Status == AlgorithmStatus.Calculating && iteration < smartGoldenSection.MaxIterations);
             }
             return GetModelStatus(calculationsTasks);
         }

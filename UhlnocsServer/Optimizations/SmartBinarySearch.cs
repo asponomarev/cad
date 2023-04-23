@@ -27,7 +27,7 @@ namespace UhlnocsServer.Optimizations
                              string throughputCharacteristic,
                              int maxIterations,
                              double maxRate,
-                             double accuracy) : base(AlgorithmType.SmartBinarySearch, variableParameter)
+                             double accuracy = 0.9) : base(AlgorithmType.SmartBinarySearch, variableParameter)
         {
             ThroughputCharacteristic = throughputCharacteristic;
             MaxIterations = maxIterations;
@@ -69,20 +69,20 @@ namespace UhlnocsServer.Optimizations
             return calculationParameters;
         }
 
-        public int MoveBorder(double throughput, int iteration)
+        public AlgorithmStatus MoveBorder(double throughput, int iteration)
         {
             if (iteration == 0)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                 {
-                    return -1; // первая точка плохая
+                    return AlgorithmStatus.FirstPointIsBad;
                 }
             }
             if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
-                    return -2; // последняя точка хорошая
+                    return AlgorithmStatus.LastPointIsGood;
                 }
             }
             if (IsPointGood(CurrentRate, throughput, Accuracy))
@@ -98,7 +98,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
                 {
-                    return 0; // точка насыщения найдена
+                    return AlgorithmStatus.FoundSaturationPoint;
                 }
             }
             else
@@ -117,7 +117,7 @@ namespace UhlnocsServer.Optimizations
                     return 0; // точка насыщения найдена
                 }
             }
-            return 1;
+            return AlgorithmStatus.Calculating;
         }      
     }
 }

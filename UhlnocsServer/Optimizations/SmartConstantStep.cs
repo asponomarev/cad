@@ -21,7 +21,7 @@ namespace UhlnocsServer.Optimizations
                                   string throughputCharacteristic,
                                   double step,
                                   int maxIterations,
-                                  double accuracy) : base(AlgorithmType.SmartConstantStep, variableParameter)
+                                  double accuracy = 0.9) : base(AlgorithmType.SmartConstantStep, variableParameter)
         {
             ThroughputCharacteristic = throughputCharacteristic;
             Step = step;
