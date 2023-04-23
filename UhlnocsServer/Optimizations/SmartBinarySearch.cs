@@ -108,7 +108,7 @@ namespace UhlnocsServer.Optimizations
                 {
                     FirstChangedBorder = "Right";
                 }
-                else if (FirstChangedBorder == "left")
+                else if (FirstChangedBorder == "Left")
                 {
                     BothBordersChanged = true;
                 }

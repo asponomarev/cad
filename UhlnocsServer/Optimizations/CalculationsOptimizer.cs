@@ -116,7 +116,6 @@ namespace UhlnocsServer.Optimizations
             await OnLaunchFinished(launch, launchStatus);
         }
 
-        // will be beautified later
         public async Task<ModelStatus> OptimizeModel(string launchId,
                                                      string modelId,
                                                      List<ParameterValue> parameters,
@@ -153,7 +152,7 @@ namespace UhlnocsServer.Optimizations
                 else if (valueType == PropertyValueType.String)
                 {
                     constantStep.Step = 1;
-                    StringParameterInfo parameterInfo = modelConfiguration.GetParameterInfo<StringParameterInfo>(variableParameterId);
+                    StringParameterInfo parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
                     constantStep.Iterations = parameterInfo.PossibleValues.Count;
                 }
                 calculationsTasks = new Task<List<CharacteristicValue>>[constantStep.Iterations];
@@ -220,7 +219,7 @@ namespace UhlnocsServer.Optimizations
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
                                                                                                         binarySearch.ThroughputCharacteristic);
                         AlgorithmStatus Status = binarySearch.MoveBorder(throughputCharacteristicValue, i);
-                        if (Status == AlgorithmStatus.FirstPointIsBad || StatusCode == AlgorithmStatus.LastPointIsGood)
+                        if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
                         {
                             break;                        
                         }

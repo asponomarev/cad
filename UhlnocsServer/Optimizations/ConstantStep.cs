@@ -33,7 +33,7 @@ namespace UhlnocsServer.Optimizations
                 {
                     if (valueType == PropertyValueType.String)
                     {
-                        StringParameterInfo parameterInfo = modelConfiguration.GetParameterInfo<StringParameterInfo>(variableParameterId);
+                        StringParameterInfo parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
                         string variableParameterValue = parameterInfo.PossibleValues[iteration];
                         calculationParameters.Add(new StringParameterValue(variableParameterId, variableParameterValue));
                     }
