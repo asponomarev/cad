@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+option csharp_namespace = "UhlnocsClient";
+
+package userProto;
+
+service UserServiceProto {
+  rpc SignUpUser (UserWithoutIdRequest) returns (UserIdMessage);
+
+  rpc SignInUser (UserSignInRequest) returns (UserFullDataMessage);
+
+  rpc DeleteUser (UserIdMessage) returns (EmptyMessage);
+
+  rpc UpdateUser (UserFullDataMessage) returns (EmptyMessage);
+
+  rpc GetUserFullData (UserIdMessage) returns (UserFullDataMessage);
+
+  rpc GetUserOpenData (UserIdMessage) returns (UserOpenDataReply);
+
+  rpc GetUsersOpenData (UsersIdsRequest) returns (UsersOpenDataReply);
+
+  rpc GetAllUsersOpenData (EmptyMessage) returns (UsersOpenDataReply);
+}
+
+message EmptyMessage {
+
+}
+
+message UserWithoutIdRequest {
+	string email = 1;
+	string password = 2;
+	string name = 3;
+	string surname = 4;
+	string description = 5;
+}
+
+message UserSignInRequest {
+	string email = 1;
+	string password = 2;
+}
+
+message UserIdMessage {
+	string id = 1;
+}
+
+message UsersIdsRequest {
+	repeated UserIdMessage ids = 1;
+}
+
+message UserFullDataMessage {
+	string id = 1;
+	string email = 2;
+	string password = 3;
+	string name = 4;
+	string surname = 5;
+	string description = 6;
+}
+
+message UserOpenDataReply {
+	string id = 1;
+	string email = 2;
+	string name = 3;
+	string surname = 4;
+	string description = 5;
+}
+
+message UsersOpenDataReply {
+	repeated UserOpenDataReply users = 1;
+}
