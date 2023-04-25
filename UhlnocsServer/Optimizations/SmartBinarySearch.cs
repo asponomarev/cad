@@ -19,9 +19,11 @@ namespace UhlnocsServer.Optimizations
 
         public double CurrentRate { get; set; }
 
-        public string FirstChangedBorder { get; set; }
+        public string? FirstChangedBorder { get; set; }
 
         public bool BothBordersChanged { get; set; }
+
+        public bool ReachedSaturationPoint { get; set; }
 
         public SmartBinarySearch(string variableParameter,
                              string throughputCharacteristic,
@@ -36,6 +38,7 @@ namespace UhlnocsServer.Optimizations
             LastValue = MaxRate;
             FirstChangedBorder = null;
             BothBordersChanged = false;
+            ReachedSaturationPoint = false;
         }
 
         public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
@@ -71,6 +74,10 @@ namespace UhlnocsServer.Optimizations
 
         public AlgorithmStatus MoveBorder(double throughput, int iteration)
         {
+            if (ReachedSaturationPoint == true)
+            {
+                return AlgorithmStatus.FoundSaturationPoint;
+            }
             if (iteration == 0)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
@@ -98,7 +105,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
                 {
-                    return AlgorithmStatus.FoundSaturationPoint;
+                    ReachedSaturationPoint = true;
                 }
             }
             else
@@ -114,7 +121,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 else if (FirstChangedBorder == "Right" && BothBordersChanged == true)
                 {
-                    return 0; // точка насыщения найдена
+                    ReachedSaturationPoint = true;
                 }
             }
             return AlgorithmStatus.Calculating;
