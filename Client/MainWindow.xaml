@@ -4,11 +4,28 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
+        xmlns:viewmodels="clr-namespace:Client.ViewModels"
+        xmlns:views="clr-namespace:Client.Views"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <DataTemplate x:Name="userViewTemplate" DataType="{x:Type viewmodels:UserViewModel}">
+            <views:UserView DataContext="{Binding}"/>
+        </DataTemplate>
+        <DataTemplate x:Name="parametersViewTemplate" DataType="{x:Type viewmodels:ParametersViewModel}">
+            <views:ParametersView DataContext="{Binding}"/>
+        </DataTemplate>
+        <DataTemplate x:Name="characteristicsViewTemplate" DataType="{x:Type viewmodels:CharacteristicsViewModel}">
+            <views:CharacteristicsView DataContext="{Binding}"/>
+        </DataTemplate>
+    </Window.Resources>
     <Grid>
-        <Button Content="DummyButton" HorizontalAlignment="Left" Height="72" Margin="324,174,0,0" VerticalAlignment="Top" Width="110" Click="Button_Click"/>
-        <TextBlock x:Name="MyTextBlock" HorizontalAlignment="Left" Margin="269,59,0,0" TextWrapping="Wrap" Text="TextSample" VerticalAlignment="Top" Height="38" Width="220"/>
+        <Grid HorizontalAlignment="Center" Height="32" Margin="0,10,0,0" VerticalAlignment="Top" Width="780">
+            <Button x:Name="UsersButton" Content="Users" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" Width="100" Click="UsersButton_Click"/>
+            <Button x:Name="ParametersButton" Content="Parameters" HorizontalAlignment="Left" Margin="140,0,0,0" VerticalAlignment="Center" Width="100" Click="ParametersButton_Click"/>
+            <Button x:Name="CharacteristicsButton" Content="Characteristics" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Center" Width="100" Click="CharacteristicsButton_Click"/>
+        </Grid>
+        <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,47,0,0" VerticalAlignment="Top" Width="780" Height="377"/>
 
     </Grid>
 </Window>

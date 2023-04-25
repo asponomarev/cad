@@ -1,9 +1,11 @@
-﻿using Grpc.Net.Client;
+﻿using Client.ViewModels;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -48,23 +50,19 @@ namespace Client
         private GrpcChannel CreateGrpcChannel() 
             => GrpcChannel.ForAddress(_configuration.GetSection("ServerEndpoint").Value);
 
-        private async Task<string> DummyMethod()
+        private void UsersButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var result = await _modelClient.DeleteModelAsync(new ModelIdRequest() { ModelId = "testId" });
-                return "Ok";
-            }
-            catch (Exception ex)
-            {
-                return ex.Message; 
-            }
+            DataContext = new UserViewModel(_userServiceClient, _modelClient);
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e)
+        private void ParametersButton_Click(object sender, RoutedEventArgs e)
         {
-            var result = await DummyMethod();
-            MyTextBlock.Text = result;
+            DataContext = new ParametersViewModel();
+        }
+
+        private void CharacteristicsButton_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = new CharacteristicsViewModel();
         }
     }
 }
