@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "UhlnocsClient";
+
+package calculationProto;
+
+service CalculationServiceProto {
+  rpc StartLaunch (LaunchConfigurationMessage) returns (LaunchConfigurationMessage);
+}
+
+message CalculationEmptyMessage {
+
+}
+
+message LaunchConfigurationMessage {
+    string launchConfigurationJson = 1;
+}

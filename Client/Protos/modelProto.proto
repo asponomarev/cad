@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+option csharp_namespace = "UhlnocsClient";
+
+package modelProto;
+
+service ModelServiceProto {
+  rpc AddModelConfiguration (ModelConfigurationMessage) returns (ModelEmptyMessage);
+
+  rpc UpdateModelConfiguration (ModelConfigurationMessage) returns (ModelEmptyMessage);
+
+  rpc DeleteModel (ModelIdRequest) returns (ModelEmptyMessage);
+
+  rpc GetModelConfiguration (ModelIdRequest) returns (ModelConfigurationMessage);
+
+  rpc UploadModelArchive (stream ArchivePartRequest) returns (ModelEmptyMessage);
+
+  rpc DownloadModelArchive (ModelIdRequest) returns (stream ArchivePartReply);
+
+  rpc GetParametersWithModels (ModelEmptyMessage) returns (ParametersWithModelsReply);
+
+  rpc GetCharacteristicsWithModels (ModelEmptyMessage) returns (CharacteristicsWithModelsReply);
+}
+
+message ModelEmptyMessage {
+
+}
+
+message ModelIdRequest {
+	string modelId = 1;
+}
+
+message ModelConfigurationMessage {
+	string modelConfigurationJson = 1;
+}
+
+message ArchivePartReply {
+	bytes data = 1;
+	int32 bytesToRead = 2;
+}
+
+message ArchivePartRequest {
+	bytes data = 1;
+	int32 bytesToRead = 2;
+	string modelId = 3;
+}
+
+message ParametersWithModelsReply {
+	string parametersWithModelsJson = 1;
+}
+
+message CharacteristicsWithModelsReply {
+	string characteristicsWithModelsJson = 1;
+}
