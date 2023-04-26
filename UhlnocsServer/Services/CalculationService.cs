@@ -37,7 +37,7 @@ namespace UhlnocsServer.Services
                 ThrowBadRequestException(exception);
             }
 
-            Optimizer.OptimizeLaunch(configuration);
+            _ = Optimizer.OptimizeLaunch(configuration);
 
             string configJsonString = LaunchConfiguration.ToJsonString(configuration);
 
