@@ -103,9 +103,11 @@ namespace UhlnocsServer.Optimizations
             Task<ModelStatus>[] modelsTasks = new Task<ModelStatus>[modelsIds.Count];
             for (int i = 0; i < modelsIds.Count; ++i)
             {
+                string modelId = modelsIds[i];
+                List<ParameterValue> parameters = parametersOfModels[modelId];
                 Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launch.Id,
-                                                                           modelsIds[i],
-                                                                           parametersOfModels[modelsIds[i]],
+                                                                           modelId,
+                                                                           parameters,
                                                                            launchConfiguration.OptimizationAlgorithm));
                 modelsTasks[i] = modelTask;
             }
@@ -123,7 +125,7 @@ namespace UhlnocsServer.Optimizations
         {
             Task<List<CharacteristicValue>>[] calculationsTasks = null;
             string variableParameterId = optimizationAlgorithm.VariableParameter;
-            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);// НУЖЕН ЛИ ТЕПЕРЬ ModelConfiguration.GetParameterInfo?
+            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);
             PropertyValueType valueType = ModelService.ParametersWithModels[variableParameterId].ValueType;
 
             Model? model = null;
@@ -315,6 +317,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 while (Status == AlgorithmStatus.Calculating && iteration < smartGoldenSection.MaxIterations);
             }
+          
             return GetModelStatus(calculationsTasks);
         }
 
@@ -384,7 +387,7 @@ namespace UhlnocsServer.Optimizations
                 RecalculateExisting = launchConfiguration.RecalculateExisting,
                 SearchAccuracy = launchConfiguration.SearchAccuracy,
                 Status = LaunchStatus.Running,
-                StartTime = DateTime.Now,
+                StartTime = DateTime.UtcNow,
                 EndTime = null,
                 Duration = null
             };
@@ -434,7 +437,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task OnLaunchFinished(Launch launch, LaunchStatus launchStatus)
         {
-            launch.EndTime = DateTime.Now;
+            launch.EndTime = DateTime.UtcNow;
             launch.Duration = launch.EndTime - launch.StartTime;
             launch.Status = launchStatus;
             try
@@ -489,6 +492,7 @@ namespace UhlnocsServer.Optimizations
             try
             {
                 string parametersJson = ParameterValue.ListToJsonString(parameters);
+                CreateDirectoryIfNotExists(cadFormatParametersFilePath);
                 File.WriteAllText(cadFormatParametersFilePath, parametersJson);
 
                 Process prepareProcess = ConfigureProcess(preparerFilePath,
@@ -546,6 +550,7 @@ namespace UhlnocsServer.Optimizations
 
                 if (collectFromStdout)
                 {
+                    CreateDirectoryIfNotExists(modelFormatCharacteristicsFilePath);
                     File.WriteAllText(modelFormatCharacteristicsFilePath, modelOutput);
                 }
                 if (modelProcess.ExitCode != modelOkExitCode)
@@ -631,7 +636,7 @@ namespace UhlnocsServer.Optimizations
                 CharacteristicsId = null,
                 ReallyCalculated = true,
                 Status = CalculationStatus.Running,
-                StartTime = DateTime.Now,
+                StartTime = DateTime.UtcNow,
                 EndTime = null,
                 Duration = null,
                 Message = null
@@ -684,7 +689,7 @@ namespace UhlnocsServer.Optimizations
         private async Task OnCalculationException(Calculation calculation, Exception exception, string messagePrefix)
         {
             calculation.Message = messagePrefix + Environment.NewLine + GetExceptionMessage(exception);
-            calculation.EndTime = DateTime.Now;
+            calculation.EndTime = DateTime.UtcNow;
             calculation.Duration = calculation.EndTime - calculation.StartTime;
             calculation.Status = CalculationStatus.Failed;
             try
@@ -729,7 +734,7 @@ namespace UhlnocsServer.Optimizations
         private async Task OnCalculationCompleted(Calculation calculation, string characteristicsId)
         {
             calculation.CharacteristicsId = characteristicsId;
-            calculation.EndTime = DateTime.Now;
+            calculation.EndTime = DateTime.UtcNow;
             calculation.Duration = calculation.EndTime - calculation.StartTime;
             calculation.Status = CalculationStatus.Completed;
             try
@@ -742,10 +747,20 @@ namespace UhlnocsServer.Optimizations
             }
         }
 
+        private void CreateDirectoryIfNotExists(string filePath)
+        {
+            string fileDirectory = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(fileDirectory))
+            {
+                Directory.CreateDirectory(fileDirectory);
+            }
+        }
+
         private void SafeAppendToFile(string filePath, string message)
         {
             try
             {
+                CreateDirectoryIfNotExists(filePath);
                 File.AppendAllText(filePath, message);
             }
             catch (Exception)
