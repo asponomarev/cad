@@ -12,6 +12,8 @@ namespace UhlnocsServer.Optimizations
 
         public int Iterations { get; set; }
 
+        public StringParameterInfo? ParameterInfo { get; set; }
+
         public ConstantStep(string variableParameter, double step, int iterations) : base(AlgorithmType.ConstantStep, variableParameter)
         {
             Step = step;
@@ -19,8 +21,7 @@ namespace UhlnocsServer.Optimizations
         }
 
         public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, 
-                                                                int iteration, PropertyValueType valueType, 
-                                                                ModelConfiguration modelConfiguration, ParameterValue variableParameter)
+                                                                int iteration, PropertyValueType valueType, ParameterValue variableParameter)
         {
             List<ParameterValue> calculationParameters = new();
             foreach (ParameterValue parameter in parameters)
@@ -33,8 +34,7 @@ namespace UhlnocsServer.Optimizations
                 {
                     if (valueType == PropertyValueType.String)
                     {
-                        StringParameterInfo parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
-                        string variableParameterValue = parameterInfo.PossibleValues[iteration];
+                        string variableParameterValue = ParameterInfo.PossibleValues[iteration];
                         calculationParameters.Add(new StringParameterValue(variableParameterId, variableParameterValue));
                     }
                     else if (valueType == PropertyValueType.Bool)
