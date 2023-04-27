@@ -54,13 +54,13 @@ namespace UhlnocsServer.Optimizations
             return calculationParameters;
         }
 
-        public bool CheckPointIsGood(double throughput)
+        public AlgorithmStatus CheckPointIsGood(double throughput)
         {
             if (IsPointGood(CurrentRate, throughput, Accuracy))
             {
-                return false;
+                return AlgorithmStatus.Calculating;
             }
-            return true;
+            return AlgorithmStatus.FoundSaturationPoint;
         }
     }
 }

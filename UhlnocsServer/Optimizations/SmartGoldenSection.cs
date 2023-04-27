@@ -25,7 +25,7 @@ namespace UhlnocsServer.Optimizations
 
         public double X2 { get; set; }
 
-        public string LastFoundPoint { get; set; }
+        public string? LastFoundPoint { get; set; }
 
         public string NextPoint { get; set; }
 
@@ -68,6 +68,10 @@ namespace UhlnocsServer.Optimizations
                     else if (iteration == 1)
                     {
                         CurrentRate = LastValue;
+                    }
+                    else if (ReachedSaturationPoint == true)
+                    {
+                        CurrentRate = (X1 + X2) / 2;
                     }
                     else
                     {

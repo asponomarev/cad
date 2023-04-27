@@ -1,23 +1,8 @@
 ﻿using UhlnocsServer.Optimizations;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Values;
-
-using UhlnocsServer.Models.Properties.Parameters.Values;
-using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties;
-using UhlnocsServer.Models.Properties.Parameters.Infos;
-using UhlnocsServer.Models;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using UhlnocsServer.Calculations;
-using UhlnocsServer.Models.Properties.Characteristics;
-using Grpc.Core;
-using Moq.AutoMock;
-using Moq;
-using DSS.Wrappers;
-using DSS;
-using ModelConfiguration = UhlnocsServer.Models.ModelConfiguration;
-using System.Xml.Linq;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+
 
 namespace Tests
 {
@@ -45,7 +30,8 @@ namespace Tests
             {
                 calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
             }
-            int CalculatedValue = (calculationParameters[0] as IntParameterValue).Value;
+            variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
+            int CalculatedValue = ((IntParameterValue)variableParameter).Value;
             Assert.That(CalculatedValue, Is.EqualTo(9)); // проверка, что рассчитанный параметр соответствует ожиданию
         }
 
@@ -58,16 +44,20 @@ namespace Tests
             int maxIterations = 1;
             SmartConstantStep smartConstantStep = new SmartConstantStep(variableParameterId, "Characteristic1", step, maxIterations);
             int iteration = 0;
-            bool PointsStillGood;
+            AlgorithmStatus Status = AlgorithmStatus.Calculating;
             do
             {
-                List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                _ = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
                 double throughputCharacteristicValue = 1;
-                PointsStillGood = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                Status = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
                 ++iteration;
+                if (iteration == smartConstantStep.MaxIterations)
+                {
+                    Status = AlgorithmStatus.ReachedMaxIteration;
+                }
             }
-            while (iteration < smartConstantStep.MaxIterations && PointsStillGood);
-            Assert.That(PointsStillGood, Is.EqualTo(true)); // проверка, что точки все еще "хорошие"
+            while (Status == AlgorithmStatus.Calculating);
+            Assert.That(Status, Is.EqualTo(AlgorithmStatus.ReachedMaxIteration)); // проверка, что статус алгоритма поменялся
             Assert.That(iteration, Is.EqualTo(1)); // проверка, что цикл закончился на 1 итерации, так как maxIterations было задано 1
         }
 
@@ -179,7 +169,7 @@ namespace Tests
         {
             List<ParameterValue> parameters = new List<ParameterValue>() { new DoubleParameterValue("Parameter1", 1), };
             string variableParameterId = "Parameter1";
-            int iterations = 4;
+            int iterations = 5;
             double maxRate = 50;
             GoldenSection goldenSection = new GoldenSection(variableParameterId, "Characteristic1", iterations, maxRate);
             goldenSection.FirstValue = 1;
@@ -187,20 +177,25 @@ namespace Tests
             for (int i = 0; i < goldenSection.Iterations; ++i)
             {
                 List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(parameters, variableParameterId, i);
-                if (i == 3)
+                if (i == 2)
                 {
                     throughputCharacteristicValue = 0;
-                    Assert.That(Math.Round(goldenSection.X1), Is.EqualTo(20));// проверка, что левая граница поменяла значение по формуле Фибоначчи
+                    Assert.That(Math.Round(goldenSection.X1), Is.EqualTo(20));// проверка, что точка X1 поменяла значение по формуле Фибоначчи
                     _ = goldenSection.MoveBorder(throughputCharacteristicValue, i);
-                    Assert.That(goldenSection.NextPoint, Is.EqualTo("X1")); // проверка, что если точка "плохая", то снова будем менять левую границу
+                    Assert.That(goldenSection.NextPoint, Is.EqualTo("X1")); // проверка, что если точка "плохая", то снова будем искать X1
+                }
+                if (i == 3)
+                {
+                    ParameterValue variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
+                    throughputCharacteristicValue = ((DoubleParameterValue)variableParameter).Value;
+                    Assert.That(Math.Round(goldenSection.LastValue), Is.EqualTo(20)); // проверка, что правая граница поменялась на значение точки X1
+                    _ = goldenSection.MoveBorder(throughputCharacteristicValue, i);
+                    Assert.That(goldenSection.NextPoint, Is.EqualTo("X2")); // проверка, что точка "хорошая" и далее будем менять X2
                 }
                 if (i == 4)
                 {
-                    throughputCharacteristicValue = (calculationParameters[0] as DoubleParameterValue).Value;
-                    Assert.That(goldenSection.X2, Is.EqualTo(50)); // проверка, что правая граница еще осталась неизменной
-                    _ = goldenSection.MoveBorder(throughputCharacteristicValue, i);
-                    Assert.That(goldenSection.NextPoint, Is.EqualTo("X2")); // проверка, что точка "хорошая" и далее будем менять правую границу
-                }
+                    Assert.That(Math.Round(goldenSection.X2), Is.EqualTo(13));// проверка, что точка X2 поменяла значение по формуле Фибоначчи
+                }         
             }
         }
 
@@ -220,22 +215,24 @@ namespace Tests
                 List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(parameters, variableParameterId, iteration);
                 if (iteration == 2)
                 {
-                    throughputCharacteristicValue = (calculationParameters[0] as DoubleParameterValue).Value;
+                    ParameterValue variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
+                    throughputCharacteristicValue = ((DoubleParameterValue)variableParameter).Value;
                     Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
-                    Assert.That(smartGoldenSection.LastFoundPoint, Is.EqualTo("X1")); // проверка, что нашлась левая граница
+                    Assert.That(smartGoldenSection.LastFoundPoint, Is.EqualTo("X1")); // проверка, что была найдена точка X1
                 }
                 if (iteration == 3)
                 {
                     throughputCharacteristicValue = 0;
                     Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
-                    Assert.That(smartGoldenSection.LastFoundPoint, Is.EqualTo("X2"));// проверка, что нашлась правая граница
-                    Assert.That(smartGoldenSection.InMiddleSegment, Is.EqualTo(true)); // проверка, что обе границы поменялись, целевой отрезок в середине
+                    Assert.That(smartGoldenSection.LastFoundPoint, Is.EqualTo("X2"));// проверка, что была найдена точка X2
+                    Assert.That(smartGoldenSection.InMiddleSegment, Is.EqualTo(true)); // проверка, что обе границы поменялись на X1 и X2
                 }
                 if (iteration == 4)
                 {
-                    throughputCharacteristicValue = (calculationParameters[0] as DoubleParameterValue).Value;
+                    ParameterValue variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
+                    throughputCharacteristicValue = ((DoubleParameterValue)variableParameter).Value;
                     Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
-                    Assert.That(smartGoldenSection.NextPoint, Is.EqualTo("X2")); // проверка, что далее будем менять правую границу
+                    Assert.That(smartGoldenSection.NextPoint, Is.EqualTo("X2")); // проверка, что далее будем находить точку X2
                 }
                 if (iteration == 5)
                 {
@@ -248,6 +245,9 @@ namespace Tests
                     throughputCharacteristicValue = 0;
                     Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
                     Assert.That(Status, Is.EqualTo(AlgorithmStatus.FoundSaturationPoint)); // проверка, что статус алгоритма поменялся
+                    ParameterValue variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
+                    double CalculatedValue = ((DoubleParameterValue)variableParameter).Value;
+                    Assert.That(Math.Round(CalculatedValue), Is.EqualTo(26)); // проверка, что найдена искомая точка насыщения
                 }
                 ++iteration;
             }
