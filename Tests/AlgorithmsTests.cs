@@ -1,13 +1,82 @@
 ﻿using UhlnocsServer.Optimizations;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Values;
+
+using UhlnocsServer.Models.Properties.Parameters.Values;
+using UhlnocsServer.Models.Properties.Parameters;
+using UhlnocsServer.Models.Properties;
+using UhlnocsServer.Models.Properties.Parameters.Infos;
+using UhlnocsServer.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Models.Properties.Characteristics;
+using Grpc.Core;
+using Moq.AutoMock;
+using Moq;
+using DSS.Wrappers;
+using DSS;
+using ModelConfiguration = UhlnocsServer.Models.ModelConfiguration;
+using System.Xml.Linq;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Tests
 {
     public class AlgorithmsTests
     {
+        [Test]
+        public void TestConstantStep()
+        {
+            List<ParameterValue> parameters = new List<ParameterValue>()
+            {
+                new IntParameterValue("Parameter1", 1),
+                new DoubleParameterValue("Parameter2", 5.5),
+                new StringParameterValue("Parameter3", "value1"),
+                new BoolParameterValue("Parameter4", true)
+
+            };
+            int iterations = 5;
+            double step = 2;
+            string variableParameterId = "Parameter1";
+            ConstantStep constantStep = new ConstantStep(variableParameterId, step, iterations);
+            PropertyValueType valueType = PropertyValueType.Int;
+            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);
+            List<ParameterValue> calculationParameters = new();
+            for (int i = 0; i < constantStep.Iterations; ++i)
+            {
+                calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
+            }
+            int calculatedParameter = (calculationParameters[0] as IntParameterValue).Value;
+            Assert.That(calculatedParameter, Is.EqualTo(9)); // проверка, что рассчитанный параметр соответствует ожиданию
+        }
+
+        [Test]
+        public void TestSmartConstantStep()
+        {
+            List<ParameterValue> parameters = new List<ParameterValue>()
+            {
+                new IntParameterValue("Parameter1", 1),
+                new DoubleParameterValue("Parameter2", 1),
+                new DoubleParameterValue("Parameter3", 5.5),
+            };
+            string variableParameterId = "Parameter1";
+
+            double step = 1;
+            int maxIterations = 1;
+            SmartConstantStep smartConstantStep = new SmartConstantStep(variableParameterId, "Characteristic1", step, maxIterations);
+            int iteration = 0;
+            bool PointsStillGood;
+            do
+            {
+                List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                double throughputCharacteristicValue = 1;
+                PointsStillGood = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                ++iteration;
+            }
+            while (iteration < smartConstantStep.MaxIterations && PointsStillGood);
+            Assert.That(PointsStillGood, Is.EqualTo(true)); // проверка, что точки все еще "хорошие"
+            Assert.That(iteration, Is.EqualTo(1)); // проверка, что цикл закончился на 1 итерации, так как maxIterations было задано 1
+        }
+
         [Test]
         public void TestBinarySearch()
         {
@@ -16,7 +85,6 @@ namespace Tests
                 new IntParameterValue("Parameter1", 1),
                 new DoubleParameterValue("Parameter2", 1),
                 new DoubleParameterValue("Parameter3", 5.5),
-
             };
             string variableParameterId = "Parameter1";
 
@@ -68,7 +136,6 @@ namespace Tests
                 new IntParameterValue("Parameter1", 1),
                 new DoubleParameterValue("Parameter2", 1),
                 new DoubleParameterValue("Parameter3", 5.5),
-
             };
             string variableParameterId = "Parameter1";
 

@@ -148,21 +148,19 @@ namespace UhlnocsServer.Optimizations
             {
                 if (valueType == PropertyValueType.Bool)
                 {
-                    constantStep.Step = 1;
                     constantStep.Iterations = 2;
                 }
                 else if (valueType == PropertyValueType.String)
                 {
-                    constantStep.Step = 1;
                     StringParameterInfo parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
                     constantStep.Iterations = parameterInfo.PossibleValues.Count;
+                    constantStep.ParameterInfo = parameterInfo;
                 }
                 calculationsTasks = new Task<List<CharacteristicValue>>[constantStep.Iterations];
 
                 for (int i = 0; i < constantStep.Iterations; ++i)
                 {
-                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId,
-                                                                                                        i, valueType, modelConfiguration, variableParameter);
+                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
 
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[i] = calculationTask;
