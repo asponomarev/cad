@@ -31,10 +31,12 @@ namespace UhlnocsServer.Optimizations
 
         public bool InMiddleSegment { get; set; }
 
+        public bool ReachedSaturationPoint { get; set; }
+
         public SmartGoldenSection(string variableParameter,
                              string throughputCharacteristic,
-                             int maxIterations,
                              double maxRate,
+                             int maxIterations = 15,
                              double accuracy = 0.9) : base(AlgorithmType.SmartGoldenSection, variableParameter)
         {
             ThroughputCharacteristic = throughputCharacteristic;
@@ -44,6 +46,7 @@ namespace UhlnocsServer.Optimizations
             LastValue = MaxRate;
             NextPoint = "X1";
             InMiddleSegment = false;
+            ReachedSaturationPoint = false;
         }
 
         public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration)
@@ -91,6 +94,10 @@ namespace UhlnocsServer.Optimizations
 
         public AlgorithmStatus MoveBorder(double throughput, int iteration)
         {
+            if (ReachedSaturationPoint == true)
+            {
+                return AlgorithmStatus.FoundSaturationPoint;
+            }
             if (iteration == 0)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
@@ -111,10 +118,6 @@ namespace UhlnocsServer.Optimizations
                 {
                     LastValue = X1;
                     NextPoint = "X1";
-                    if (InMiddleSegment == true)
-                    {
-                        return AlgorithmStatus.FoundSaturationPoint;
-                    }
                 }
             }
             else // LastFoundPoint == X2
@@ -131,7 +134,14 @@ namespace UhlnocsServer.Optimizations
                 {
                     FirstValue = X1;
                     LastValue = X2;
-                    InMiddleSegment = true;
+                    if (InMiddleSegment == true)
+                    {
+                        ReachedSaturationPoint = true;
+                    }
+                    else
+                    {
+                        InMiddleSegment = true;
+                    }
                 }            
             }
             return AlgorithmStatus.Calculating;

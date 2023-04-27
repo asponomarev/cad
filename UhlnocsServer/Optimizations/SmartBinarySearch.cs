@@ -27,8 +27,8 @@ namespace UhlnocsServer.Optimizations
 
         public SmartBinarySearch(string variableParameter,
                              string throughputCharacteristic,
-                             int maxIterations,
                              double maxRate,
+                             int maxIterations = 15,
                              double accuracy = 0.9) : base(AlgorithmType.SmartBinarySearch, variableParameter)
         {
             ThroughputCharacteristic = throughputCharacteristic;
