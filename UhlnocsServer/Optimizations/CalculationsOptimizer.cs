@@ -173,8 +173,8 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartConstantStep.MaxIterations]; 
                 smartConstantStep.FirstValue = (variableParameter as DoubleParameterValue).Value;
-                bool PointsStillGood = true;
                 int iteration = 0;
+                AlgorithmStatus Status = AlgorithmStatus.Calculating;
 
                 do
                 {
@@ -182,7 +182,7 @@ namespace UhlnocsServer.Optimizations
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
-                    
+
                     if (calculationCharacteristics == null)
                     {
                         break;
@@ -190,11 +190,15 @@ namespace UhlnocsServer.Optimizations
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
-                        PointsStillGood = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                        Status = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
                     }
                     ++iteration;
+                    if (iteration == smartConstantStep.MaxIterations)
+                    {
+                        Status = AlgorithmStatus.ReachedMaxIteration;
+                    }
                 }
-                while (iteration < smartConstantStep.MaxIterations && PointsStillGood);
+                while (Status == AlgorithmStatus.Calculating);
             }
 
             /* Binary Search */
@@ -253,8 +257,13 @@ namespace UhlnocsServer.Optimizations
                         Status = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
+                    if (iteration == smartBinarySearch.MaxIterations)
+                    {
+                        Status = AlgorithmStatus.ReachedMaxIteration;
+                    }
                 }
-                while (Status == AlgorithmStatus.Calculating && iteration < smartBinarySearch.MaxIterations);
+                while (Status == AlgorithmStatus.Calculating);
+
             }
 
             /* Golden Section Search */
@@ -312,8 +321,12 @@ namespace UhlnocsServer.Optimizations
                         Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
+                    if (iteration == smartGoldenSection.MaxIterations)
+                    {
+                        Status = AlgorithmStatus.ReachedMaxIteration;
+                    }
                 }
-                while (Status == AlgorithmStatus.Calculating && iteration < smartGoldenSection.MaxIterations);
+                while (Status == AlgorithmStatus.Calculating);
             }
           
             return GetModelStatus(calculationsTasks);

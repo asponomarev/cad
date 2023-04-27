@@ -4,6 +4,7 @@
     {
         Calculating,
         FoundSaturationPoint,
+        ReachedMaxIteration,
         FirstPointIsBad,
         LastPointIsGood
     }

@@ -25,7 +25,7 @@ namespace UhlnocsServer.Optimizations
 
         public double X2 { get; set; }
 
-        public string LastFoundPoint { get; set; }
+        public string? LastFoundPoint { get; set; }
 
         public string NextPoint { get; set; }
 
