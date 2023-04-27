@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data.Entity;
+using System.Diagnostics;
 using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Database;
@@ -108,7 +109,8 @@ namespace UhlnocsServer.Optimizations
                 Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launch.Id,
                                                                            modelId,
                                                                            parameters,
-                                                                           launchConfiguration.OptimizationAlgorithm));
+                                                                           launchConfiguration.OptimizationAlgorithm,
+                                                                           launchConfiguration.RecalculateExisting));
                 modelsTasks[i] = modelTask;
             }
             Task.WaitAll(modelsTasks);
@@ -121,7 +123,8 @@ namespace UhlnocsServer.Optimizations
         public async Task<ModelStatus> OptimizeModel(string launchId,
                                                      string modelId,
                                                      List<ParameterValue> parameters,
-                                                     OptimizationAlgorithm optimizationAlgorithm)
+                                                     OptimizationAlgorithm optimizationAlgorithm,
+                                                     bool recalculateExisting)
         {
             Task<List<CharacteristicValue>>[] calculationsTasks = null;
             string variableParameterId = optimizationAlgorithm.VariableParameter;
@@ -162,7 +165,10 @@ namespace UhlnocsServer.Optimizations
                 {
                     List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
 
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
+                                                                                                         modelConfiguration,
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[i] = calculationTask;
                 }
                 Task.WaitAll(calculationsTasks);
@@ -172,14 +178,17 @@ namespace UhlnocsServer.Optimizations
             else if (optimizationAlgorithm is SmartConstantStep smartConstantStep)
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartConstantStep.MaxIterations]; 
-                smartConstantStep.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                smartConstantStep.FirstValue = ((DoubleParameterValue)variableParameter).Value;
                 int iteration = 0;
                 AlgorithmStatus Status = AlgorithmStatus.Calculating;
 
                 do
                 {
                     List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
+                                                                                                         modelConfiguration, 
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
 
@@ -205,12 +214,15 @@ namespace UhlnocsServer.Optimizations
             else if (optimizationAlgorithm is BinarySearch binarySearch)
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[binarySearch.Iterations];
-                binarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                binarySearch.FirstValue = ((DoubleParameterValue)variableParameter).Value;
 
                 for (int i = 0; i < binarySearch.Iterations; ++i)
                 {
                     List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(parameters, variableParameterId, i);
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
+                                                                                                         modelConfiguration, 
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;                   
                    
@@ -221,7 +233,7 @@ namespace UhlnocsServer.Optimizations
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
-                                                                                                        binarySearch.ThroughputCharacteristic);
+                                                                                                      binarySearch.ThroughputCharacteristic);
                         AlgorithmStatus Status = binarySearch.MoveBorder(throughputCharacteristicValue, i);
                         if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
                         {
@@ -235,14 +247,17 @@ namespace UhlnocsServer.Optimizations
             else if (optimizationAlgorithm is SmartBinarySearch smartBinarySearch)
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartBinarySearch.MaxIterations];
-                smartBinarySearch.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                smartBinarySearch.FirstValue = ((DoubleParameterValue)variableParameter).Value;
                 AlgorithmStatus Status = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
                 {
                     List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(parameters, variableParameterId, iteration);
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, 
+                                                                                                         modelConfiguration, 
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     
@@ -253,7 +268,7 @@ namespace UhlnocsServer.Optimizations
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
-                                                                                                        smartBinarySearch.ThroughputCharacteristic);
+                                                                                                      smartBinarySearch.ThroughputCharacteristic);
                         Status = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
@@ -270,12 +285,15 @@ namespace UhlnocsServer.Optimizations
             else if (optimizationAlgorithm is GoldenSection goldenSection)
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[goldenSection.Iterations];
-                goldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                goldenSection.FirstValue = ((DoubleParameterValue)variableParameter).Value;
 
                 for (int i = 0; i < goldenSection.Iterations; ++i)
                 {                 
                     List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(parameters, variableParameterId, i);
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
+                                                                                                         modelConfiguration,
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
 
@@ -286,7 +304,7 @@ namespace UhlnocsServer.Optimizations
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
-                                                                                                        goldenSection.ThroughputCharacteristic);
+                                                                                                      goldenSection.ThroughputCharacteristic);
                         AlgorithmStatus Status = goldenSection.MoveBorder(throughputCharacteristicValue, i);
                         if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
                         {
@@ -300,14 +318,17 @@ namespace UhlnocsServer.Optimizations
             else if (optimizationAlgorithm is SmartGoldenSection smartGoldenSection)
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartGoldenSection.MaxIterations];
-                smartGoldenSection.FirstValue = (variableParameter as DoubleParameterValue).Value;
+                smartGoldenSection.FirstValue = ((DoubleParameterValue)variableParameter).Value;
                 AlgorithmStatus Status = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
                 {
                     List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(parameters, variableParameterId, iteration);
-                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, modelConfiguration, calculationParameters));
+                    Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, 
+                                                                                                         modelConfiguration,
+                                                                                                         calculationParameters,
+                                                                                                         recalculateExisting));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     if (calculationCharacteristics == null)
@@ -334,19 +355,41 @@ namespace UhlnocsServer.Optimizations
 
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,
                                                                          ModelConfiguration modelConfiguration,
-                                                                         List<ParameterValue> parameters)
+                                                                         List<ParameterValue> parameters,
+                                                                         bool recalculateExisting)
         {          
             string modelId = modelConfiguration.Id;
 
-            // CREATE PARAMETERS
-            string parametersHash = await CreateParameters(parameters, modelId, launchId);
+            // CREATE PARAMETERS if necessary
+            string parametersHash = await CreateParametersSetIfNotExists(parameters, modelId, launchId);
             if (parametersHash == null)
             {
                 return null;
             }
 
-            // CREATE CALCULATION
-            Calculation calculation = await CreateCalculation(launchId, modelId, parametersHash);
+            // TRYING TO FIND CHARACTERISTICS FOR THIS PARAMETERS SET
+            if (!recalculateExisting)
+            {
+                CharacteristicsSet? characteristicsSet = FindCharacteristics(launchId, modelId, parametersHash);
+                // FOUND CHARACTERISTICS
+                if (characteristicsSet != null)
+                {
+                    // CREATE FAKE CALCULATION
+                    bool noCreateCalculationError = await CreateFakeCalculation(launchId, modelId, parametersHash, characteristicsSet.Id);                   
+                    if (noCreateCalculationError)
+                    {
+                        // RETURN CHARACTERISTICS FROM DB
+                        return CharacteristicValue.ListFromJsonElement(characteristicsSet.CharacteristicsValuesJson.RootElement);
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            // CREATE REAL CALCULATION
+            Calculation calculation = await CreateRealCalculation(launchId, modelId, parametersHash);
             if (calculation == null)
             {
                 return null;
@@ -610,15 +653,42 @@ namespace UhlnocsServer.Optimizations
             return (noCollectorError) ? characteristics : null;
         }
 
-        private async Task<string> CreateParameters(List<ParameterValue> parameters, string modelId, string launchId)
+        private async Task<string> CreateParametersSetIfNotExists(List<ParameterValue> parameters, string modelId, string launchId)
         {
             string parametersHash = ParameterValue.GetHashCode(parameters, modelId);
-            ParametersSet parametersSet = new()
+
+            // check if parameters set already exists
+            ParametersSet? parametersSet = null;
+            bool noGetParametersSetError = true;
+            try
+            {
+                parametersSet = await ParametersRepository.GetById(parametersHash);
+            }
+            catch (Exception exception)
+            {
+                noGetParametersSetError = false;
+                string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to get parameters set due to database exception!" + Environment.NewLine
+                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+            // got error while getting parameters
+            if (!noGetParametersSetError)
+            {
+                return null;
+            }
+            // parameters set already exists
+            if (parametersSet != null)
+            {
+                return parametersHash;
+            }
+
+            // create parameters set
+            parametersSet = new()
             {
                 Hash = parametersHash,
                 ParametersValuesJson = ParameterValue.ListToJsonDocument(parameters)
             };
-
             bool noCreateParametersSetError = true;
             try
             {
@@ -636,7 +706,62 @@ namespace UhlnocsServer.Optimizations
             return (noCreateParametersSetError) ? parametersHash : null;
         }
 
-        private async Task<Calculation> CreateCalculation(string launchId, string modelId, string parametersHash)
+        private CharacteristicsSet? FindCharacteristics(string launchId, string modelId, string parametersHash)
+        {
+            CharacteristicsSet? characteristicsSet = null;
+            try
+            {
+                characteristicsSet = CalculationsRepository.Get()
+                                         .Where(c => c.ParametersHash == parametersHash && c.Status == CalculationStatus.Completed)
+                                         .OrderByDescending(c => c.EndTime)
+                                         .Include(c => c.CharacteristicsSet)                                         
+                                         .Select(c => c.CharacteristicsSet)
+                                         .FirstOrDefault();
+            }
+            catch (Exception exception)
+            {
+                string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to find characteristics set due to database exception!" + Environment.NewLine
+                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+            return characteristicsSet;
+        }
+
+        private async Task<bool> CreateFakeCalculation(string launchId, string modelId, string parametersHash, string characteristicsId)
+        {
+            Calculation calculation = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                LaunchId = launchId,
+                ModelId = modelId,
+                ParametersHash = parametersHash,
+                CharacteristicsId = characteristicsId,
+                ReallyCalculated = false,
+                Status = CalculationStatus.Completed,
+                StartTime = DateTime.UtcNow,
+                Message = null
+            };
+            calculation.EndTime = calculation.StartTime;
+            calculation.Duration = calculation.EndTime - calculation.StartTime;
+
+            bool noCreateCalculationError = true;
+            try
+            {
+                await CalculationsRepository.Create(calculation);
+            }
+            catch (Exception exception)
+            {
+                noCreateCalculationError = false;
+                string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
+                string message = "Unable to create calculation due to database exception!" + Environment.NewLine
+                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                SafeAppendToFile(logFilePath, message);
+            }
+            return noCreateCalculationError;
+        }
+
+        private async Task<Calculation> CreateRealCalculation(string launchId, string modelId, string parametersHash)
         {
             Calculation calculation = new()
             {
