@@ -15,8 +15,6 @@ namespace UhlnocsServer
 
             builder.Services.AddGrpc();
 
-            builder.Services.AddTransient<ApplicationDatabaseContext>();
-
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<ModelService>();
             builder.Services.AddSingleton<CalculationService>();
