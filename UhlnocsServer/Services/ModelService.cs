@@ -1,6 +1,5 @@
 ﻿using Google.Protobuf;
 using Grpc.Core;
-using System.Configuration;
 using System.IO.Compression;
 using System.Text.Json;
 using UhlnocsServer.Database;
