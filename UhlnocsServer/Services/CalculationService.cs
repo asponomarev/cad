@@ -2,7 +2,6 @@
 using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Optimizations;
-using UhlnocsServer.Users;
 using static UhlnocsServer.Utils.ExceptionUtils;
 
 namespace UhlnocsServer.Services
@@ -12,19 +11,35 @@ namespace UhlnocsServer.Services
         private readonly ILogger<CalculationService> Logger;
         private readonly UserService UserService;
         private CalculationsOptimizer Optimizer;
+        //private IConfigurationEnhancer ConfigurationEnhancer;
 
         public CalculationService(ILogger<CalculationService> logger,
                                   UserService userService,
-                                  CalculationsOptimizer optimizer)
+                                  CalculationsOptimizer optimizer/*,
+                                  IConfigurationEnhancer configurationEnhancer*/)
         {
             Logger = logger;
             UserService = userService;
             Optimizer = optimizer;
+            // ConfigurationEnhancer = configurationEnhancer;
         }
 
-        public override async Task<LaunchConfigurationMessage> StartLaunch(LaunchConfigurationMessage request, ServerCallContext context)
+        public override async Task<CalculationEmptyMessage> RecalculateModelPerformance(ModelIdMessage request, ServerCallContext context)
         {
-            User sender = await UserService.AuthenticateUser(context);
+            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for model
+
+            _ = Optimizer.RecalculateModelPerformance(request.ModelId);
+
+            return new CalculationEmptyMessage
+            {
+
+            };
+        }
+
+        /*
+        public override async Task<LaunchConfigurationMessage> EnhanceLaunchConfiguration(LaunchConfigurationMessage request, ServerCallContext context)
+        {
+            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for launch
 
             LaunchConfiguration configuration = null;
             try
@@ -37,13 +52,38 @@ namespace UhlnocsServer.Services
                 ThrowBadRequestException(exception);
             }
 
-            _ = Optimizer.OptimizeLaunch(configuration);
+            LaunchConfiguration enhancedConfiguration = ConfigurationEnhancer.GetModifiedLaunchConfiguration(configuration);
 
-            string configJsonString = LaunchConfiguration.ToJsonString(configuration);
+            string configJsonString = LaunchConfiguration.ToJsonString(enhancedConfiguration);
 
             return new LaunchConfigurationMessage
             {
                 LaunchConfigurationJson = configJsonString,
+            };
+        }
+        */
+
+        public override async Task<LaunchIdMessage> StartLaunch(LaunchConfigurationMessage request, ServerCallContext context)
+        {
+            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for launch
+
+            LaunchConfiguration configuration = null;
+            try
+            {
+                JsonDocument configurationJsonDocument = JsonDocument.Parse(request.LaunchConfigurationJson);
+                configuration = LaunchConfiguration.FromJsonDocument(configurationJsonDocument);
+            }
+            catch (Exception exception)
+            {
+                ThrowBadRequestException(exception);
+            }
+
+            string launchId = Guid.NewGuid().ToString();
+            _ = Optimizer.OptimizeLaunch(launchId, configuration);
+
+            return new LaunchIdMessage
+            {
+                LaunchId = launchId
             };
         }
     }

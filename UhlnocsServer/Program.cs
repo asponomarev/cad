@@ -19,6 +19,7 @@ namespace UhlnocsServer
             builder.Services.AddSingleton<ModelService>();
             builder.Services.AddSingleton<CalculationService>();
             builder.Services.AddSingleton<CalculationsOptimizer>();
+            // builderServices.AddSingleton<IConfigurationEnhancer, ConfigurationEnhancer>();
 
             builder.Services.AddTransient<IRepository<User>, Repository<User>>();
             builder.Services.AddTransient<IRepository<Model>, Repository<Model>>();

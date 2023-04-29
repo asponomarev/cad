@@ -5,7 +5,9 @@ option csharp_namespace = "UhlnocsServer";
 package calculationProto;
 
 service CalculationServiceProto {
-  rpc StartLaunch (LaunchConfigurationMessage) returns (LaunchConfigurationMessage);
+  rpc EnhanceLaunchConfiguration(LaunchConfigurationMessage) returns (LaunchConfigurationMessage);
+  rpc StartLaunch (LaunchConfigurationMessage) returns (LaunchIdMessage);
+  rpc RecalculateModelPerformance(ModelIdMessage) returns (CalculationEmptyMessage);
 }
 
 message CalculationEmptyMessage {
@@ -14,4 +16,12 @@ message CalculationEmptyMessage {
 
 message LaunchConfigurationMessage {
     string launchConfigurationJson = 1;
+}
+
+message LaunchIdMessage {
+    string launchId = 1;
+}
+
+message ModelIdMessage {
+    string modelId = 1;
 }

@@ -17,7 +17,7 @@ namespace UhlnocsServer.Models.Properties.Characteristics
             {
                 if (characteristic.Id == throughputCharacteristicId)
                 {
-                    return (characteristic as DoubleCharacteristicValue).Value;
+                    return ((DoubleCharacteristicValue)characteristic).Value;
                 }
             }
             throw new Exception($"Characteristic with id {throughputCharacteristicId} not found in list {characteristics}");
