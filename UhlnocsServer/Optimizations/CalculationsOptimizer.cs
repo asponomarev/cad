@@ -42,7 +42,7 @@ namespace UhlnocsServer.Optimizations
             CharacteristicsRepository = characteristicsRepository;
         }
 
-        // method for DSS
+        // method for DSS that returns all parameters sets for specified model
         public Task<List<List<ParameterValue>>> GetModelParametersValues(string modelId)
         {
             List<List<ParameterValue>> modelParametersValues = new();
@@ -59,17 +59,42 @@ namespace UhlnocsServer.Optimizations
                     modelParametersValues.Add(ParameterValue.ListFromJsonDocument(parametersValuesDocument));
                 }
             }
-            catch (Exception exception) 
+            catch (Exception exception)
             {
                 ThrowInternalException(exception);
             }
             return Task.FromResult(modelParametersValues);
         }
 
-        public async Task OptimizeLaunch(LaunchConfiguration launchConfiguration)
+        // method for DSS that calculates performance of specified model
+        // for now model performance is calculated as 1 / average calculations duration in ms
+        public async Task RecalculateModelPerformance(string modelId)
+        {
+            // .Average(c => c.Duration) does not want to work and may be there is a way to make it work
+            List<TimeSpan?> modelCalculationsDurations = CalculationsRepository.Get()
+                                                            .Where(c => c.ModelId == modelId &&
+                                                                        c.ReallyCalculated == true &&
+                                                                        c.Status == CalculationStatus.Completed)
+                                                            .Select(c => c.Duration)
+                                                            .ToList();
+            int totalCalculations = modelCalculationsDurations.Count;
+            double totalCalculationsDuration = 0;
+            foreach (TimeSpan duration in modelCalculationsDurations)  // duration can not be null if status = completed
+            {
+                totalCalculationsDuration += duration.TotalMilliseconds;
+            }
+            double averageCalculationsDuration = totalCalculationsDuration / totalCalculations;
+            double performance = 1.0 / averageCalculationsDuration;
+
+            Model? model = await ModelsRepository.GetById(modelId);
+            model.Performance = performance;
+            await ModelsRepository.Update(model);
+        }
+
+        public async Task OptimizeLaunch(string launchId, LaunchConfiguration launchConfiguration)
         {
             // create launch
-            Launch launch = await CreateLaunch(launchConfiguration);
+            Launch launch = await CreateLaunch(launchId, launchConfiguration);
             if (launch == null)
             {
                 return;
@@ -106,7 +131,7 @@ namespace UhlnocsServer.Optimizations
             {
                 string modelId = modelsIds[i];
                 List<ParameterValue> parameters = parametersOfModels[modelId];
-                Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launch.Id,
+                Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launchId,
                                                                            modelId,
                                                                            parameters,
                                                                            launchConfiguration.OptimizationAlgorithm,
@@ -427,11 +452,11 @@ namespace UhlnocsServer.Optimizations
                                                 calculation);
         }
 
-        private async Task<Launch> CreateLaunch(LaunchConfiguration launchConfiguration)
+        private async Task<Launch> CreateLaunch(string launchId, LaunchConfiguration launchConfiguration)
         {
             Launch launch = new()
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = launchId,
                 Name = launchConfiguration.Name,
                 Description = launchConfiguration.Description,
                 UserId = launchConfiguration.User,
@@ -439,7 +464,7 @@ namespace UhlnocsServer.Optimizations
                 UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
                 OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
                 RecalculateExisting = launchConfiguration.RecalculateExisting,
-                SearchAccuracy = launchConfiguration.SearchAccuracy,
+                DssSearchAccuracy = launchConfiguration.DssSearchAccuracy,
                 Status = LaunchStatus.Running,
                 StartTime = DateTime.UtcNow,
                 EndTime = null,

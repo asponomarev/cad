@@ -390,7 +390,7 @@ namespace UhlnocsServer.Services
             File.Delete(modelZipFilePath);
         }
 
-        // method for DSS
+        // method for DSS that returns model configuration
         public async Task<ModelConfiguration> GetModelConfigurationInternal(string modelId)
         {
             ModelConfiguration configuration = null;
@@ -404,6 +404,24 @@ namespace UhlnocsServer.Services
                 ThrowInternalException(exception);
             }
             return configuration;
+        }
+
+        // method for DSS that returns model performance
+        public Task<double> GetModelPerformance(string modelId)
+        {
+            double performance = 0;
+            try
+            {
+                performance = ModelsRepository.Get()
+                    .Where(m => m.Id == modelId)
+                    .Select(m => m.Performance)
+                    .FirstOrDefault();
+            }
+            catch (Exception exception)
+            {
+                ThrowInternalException(exception);
+            }
+            return Task.FromResult(performance);
         }
     }
 }

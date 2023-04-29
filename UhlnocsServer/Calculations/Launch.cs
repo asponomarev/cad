@@ -34,8 +34,8 @@ namespace UhlnocsServer.Calculations
         [Column("recalculate_existing")]
         public bool RecalculateExisting { get; set; }
 
-        [Column("search_accuracy")]
-        public double? SearchAccuracy { get; set; }
+        [Column("dss_search_accuracy")]
+        public double? DssSearchAccuracy { get; set; }
 
         [Column("status")]
         public LaunchStatus Status { get; set; }

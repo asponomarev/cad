@@ -15,12 +15,16 @@ namespace UhlnocsServer.Models
         [Column("configuration")]
         public JsonDocument Configuration { get; set; }
 
+        [Column("performance")]
+        public double Performance { get; set; }
+
         public List<Calculation> Calculations { get; } = new List<Calculation>();
 
         public Model(string id, JsonDocument configuration)
         {
             Id = id;
             Configuration = configuration;
+            Performance = default;  // 0
         }
 
         public void Dispose()

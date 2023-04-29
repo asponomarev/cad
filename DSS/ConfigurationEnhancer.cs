@@ -57,7 +57,7 @@ namespace DSS
                     //ищем соседей
                     else
                     {
-                        var nearestParameters = await _parameterFinder.GetNearest(knownParametersForCurrentModel, modelId, launchConfiguration.SearchAccuracy);
+                        var nearestParameters = await _parameterFinder.GetNearest(knownParametersForCurrentModel, modelId, launchConfiguration.DssSearchAccuracy);
                         if (nearestParameters != null && nearestParameters.Count > 0)
                         {
                             knownParametersForCurrentModel = nearestParameters as List<ParameterValue>;
