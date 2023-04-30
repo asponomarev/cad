@@ -121,7 +121,7 @@ namespace UhlnocsServer.Optimizations
                     LastValue = X2;
                 }
             }
-            return AlgorithmStatus.Calculating;
+            return AlgorithmStatus.FoundSaturationPoint;
         }
     }
 }

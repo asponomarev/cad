@@ -2,6 +2,7 @@
 {
     public enum AlgorithmStatus
     {
+        Undefined,
         Calculating,
         FoundSaturationPoint,
         ReachedMaxIteration,

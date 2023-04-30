@@ -126,30 +126,29 @@ namespace UhlnocsServer.Optimizations
             }
 
             // create, start and wait models tasks
-            Task<ModelStatus>[] modelsTasks = new Task<ModelStatus>[modelsIds.Count];
+            Task<ModelAndAlgorithmStatuses>[] modelsTasks = new Task<ModelAndAlgorithmStatuses>[modelsIds.Count];
             for (int i = 0; i < modelsIds.Count; ++i)
             {
                 string modelId = modelsIds[i];
                 List<ParameterValue> parameters = parametersOfModels[modelId];
-                Task<ModelStatus> modelTask = Task.Run(() => OptimizeModel(launchId,
-                                                                           modelId,
-                                                                           parameters,
-                                                                           launchConfiguration.OptimizationAlgorithm,
-                                                                           launchConfiguration.RecalculateExisting));
+                Task<ModelAndAlgorithmStatuses> modelTask = Task.Run(() => OptimizeModel(launchId,
+                                                                                         modelId,
+                                                                                         parameters,
+                                                                                         launchConfiguration.OptimizationAlgorithm,
+                                                                                         launchConfiguration.RecalculateExisting));
                 modelsTasks[i] = modelTask;
             }
             Task.WaitAll(modelsTasks);
 
             // update launch
-            LaunchStatus launchStatus = GetLaunchStatus(modelsTasks);
-            await OnLaunchFinished(launch, launchStatus);
+            await OnLaunchFinished(launch, modelsTasks);
         }
 
-        public async Task<ModelStatus> OptimizeModel(string launchId,
-                                                     string modelId,
-                                                     List<ParameterValue> parameters,
-                                                     OptimizationAlgorithm optimizationAlgorithm,
-                                                     bool recalculateExisting)
+        public async Task<ModelAndAlgorithmStatuses> OptimizeModel(string launchId,
+                                                                   string modelId,
+                                                                   List<ParameterValue> parameters,
+                                                                   OptimizationAlgorithm optimizationAlgorithm,
+                                                                   bool recalculateExisting)
         {
             Task<List<CharacteristicValue>>[] calculationsTasks = null;
             string variableParameterId = optimizationAlgorithm.VariableParameter;
@@ -167,10 +166,11 @@ namespace UhlnocsServer.Optimizations
                 string message = "Unable to get model due to database error!" + Environment.NewLine +
                                  GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(LogFilePath, message);
-                return ModelStatus.FinishedAllFailed;
+                return new ModelAndAlgorithmStatuses(modelId, ModelStatus.FinishedAllFailed, AlgorithmStatus.Undefined);
             }
             ModelConfiguration modelConfiguration = ModelConfiguration.FromJsonDocument(model.Configuration);
 
+            AlgorithmStatus algorithmStatus = AlgorithmStatus.Undefined;
             /* Constant Step Search */
             if (optimizationAlgorithm is ConstantStep constantStep)
             {
@@ -205,7 +205,7 @@ namespace UhlnocsServer.Optimizations
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartConstantStep.MaxIterations]; 
                 smartConstantStep.FirstValue = ((DoubleParameterValue)variableParameter).Value;
                 int iteration = 0;
-                AlgorithmStatus Status = AlgorithmStatus.Calculating;
+                algorithmStatus = AlgorithmStatus.Calculating;
 
                 do
                 {
@@ -219,20 +219,21 @@ namespace UhlnocsServer.Optimizations
 
                     if (calculationCharacteristics == null)
                     {
+                        algorithmStatus = AlgorithmStatus.Undefined;
                         break;
                     }
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
-                        Status = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                        algorithmStatus = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
                     }
                     ++iteration;
                     if (iteration == smartConstantStep.MaxIterations)
                     {
-                        Status = AlgorithmStatus.ReachedMaxIteration;
+                        algorithmStatus = AlgorithmStatus.ReachedMaxIteration;
                     }
                 }
-                while (Status == AlgorithmStatus.Calculating);
+                while (algorithmStatus == AlgorithmStatus.Calculating);
             }
 
             /* Binary Search */
@@ -240,6 +241,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[binarySearch.Iterations];
                 binarySearch.FirstValue = ((DoubleParameterValue)variableParameter).Value;
+                algorithmStatus = AlgorithmStatus.Calculating;
 
                 for (int i = 0; i < binarySearch.Iterations; ++i)
                 {
@@ -253,14 +255,15 @@ namespace UhlnocsServer.Optimizations
                    
                     if (calculationCharacteristics == null)
                     {
+                        algorithmStatus = AlgorithmStatus.Undefined;
                         break;
                     }
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics,
                                                                                                       binarySearch.ThroughputCharacteristic);
-                        AlgorithmStatus Status = binarySearch.MoveBorder(throughputCharacteristicValue, i);
-                        if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
+                        algorithmStatus = binarySearch.MoveBorder(throughputCharacteristicValue, i);
+                        if (algorithmStatus == AlgorithmStatus.FirstPointIsBad || algorithmStatus == AlgorithmStatus.LastPointIsGood)
                         {
                             break;                        
                         }
@@ -273,7 +276,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartBinarySearch.MaxIterations];
                 smartBinarySearch.FirstValue = ((DoubleParameterValue)variableParameter).Value;
-                AlgorithmStatus Status = AlgorithmStatus.Calculating;
+                algorithmStatus = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
@@ -288,21 +291,22 @@ namespace UhlnocsServer.Optimizations
                     
                     if (calculationCharacteristics == null)
                     {
+                        algorithmStatus = AlgorithmStatus.Undefined;
                         break;
                     }
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
                                                                                                       smartBinarySearch.ThroughputCharacteristic);
-                        Status = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
+                        algorithmStatus = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
                     if (iteration == smartBinarySearch.MaxIterations)
                     {
-                        Status = AlgorithmStatus.ReachedMaxIteration;
+                        algorithmStatus = AlgorithmStatus.ReachedMaxIteration;
                     }
                 }
-                while (Status == AlgorithmStatus.Calculating);
+                while (algorithmStatus == AlgorithmStatus.Calculating);
 
             }
 
@@ -311,6 +315,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[goldenSection.Iterations];
                 goldenSection.FirstValue = ((DoubleParameterValue)variableParameter).Value;
+                algorithmStatus = AlgorithmStatus.Calculating;
 
                 for (int i = 0; i < goldenSection.Iterations; ++i)
                 {                 
@@ -324,14 +329,15 @@ namespace UhlnocsServer.Optimizations
 
                     if (calculationCharacteristics == null)
                     {
+                        algorithmStatus = AlgorithmStatus.Undefined;
                         break;
                     }
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
                                                                                                       goldenSection.ThroughputCharacteristic);
-                        AlgorithmStatus Status = goldenSection.MoveBorder(throughputCharacteristicValue, i);
-                        if (Status == AlgorithmStatus.FirstPointIsBad || Status == AlgorithmStatus.LastPointIsGood)
+                        algorithmStatus = goldenSection.MoveBorder(throughputCharacteristicValue, i);
+                        if (algorithmStatus == AlgorithmStatus.FirstPointIsBad || algorithmStatus == AlgorithmStatus.LastPointIsGood)
                         {
                             break;                        
                         }                               
@@ -344,7 +350,7 @@ namespace UhlnocsServer.Optimizations
             {
                 calculationsTasks = new Task<List<CharacteristicValue>>[smartGoldenSection.MaxIterations];
                 smartGoldenSection.FirstValue = ((DoubleParameterValue)variableParameter).Value;
-                AlgorithmStatus Status = AlgorithmStatus.Calculating;
+                algorithmStatus = AlgorithmStatus.Calculating;
                 int iteration = 0;
 
                 do
@@ -364,18 +370,18 @@ namespace UhlnocsServer.Optimizations
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, 
                                                                                                         smartGoldenSection.ThroughputCharacteristic);
-                        Status = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
+                        algorithmStatus = smartGoldenSection.MoveBorder(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
                     if (iteration == smartGoldenSection.MaxIterations)
                     {
-                        Status = AlgorithmStatus.ReachedMaxIteration;
+                        algorithmStatus = AlgorithmStatus.ReachedMaxIteration;
                     }
                 }
-                while (Status == AlgorithmStatus.Calculating);
+                while (algorithmStatus == AlgorithmStatus.Calculating);
             }
           
-            return GetModelStatus(calculationsTasks);
+            return new ModelAndAlgorithmStatuses(modelId, GetModelStatus(calculationsTasks), algorithmStatus);
         }
 
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,
@@ -462,7 +468,7 @@ namespace UhlnocsServer.Optimizations
                 UserId = launchConfiguration.User,
                 UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
                 UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
-                OptimizationAlgorithm = JsonDocument.Parse(OptimizationAlgorithm.ToJsonString(launchConfiguration.OptimizationAlgorithm)),
+                OptimizationAlgorithm = OptimizationAlgorithm.ToJsonDocument(launchConfiguration.OptimizationAlgorithm),
                 RecalculateExisting = launchConfiguration.RecalculateExisting,
                 DssSearchAccuracy = launchConfiguration.DssSearchAccuracy,
                 Status = LaunchStatus.Running,
@@ -486,39 +492,16 @@ namespace UhlnocsServer.Optimizations
             return (noCreateLaunchError) ? launch : null;
         }
 
-        private LaunchStatus GetLaunchStatus(Task<ModelStatus>[] modelsTasks)
-        {
-            int totalTasks = modelsTasks.Length;
-            int modelsNoFailed = 0;
-            int modelsAllFailed = 0;
-            foreach (Task<ModelStatus> task in modelsTasks)
-            {
-                if (task.Result == ModelStatus.FinishedNoFailed)
-                {
-                    ++modelsNoFailed;
-                }
-                else if (task.Result == ModelStatus.FinishedAllFailed) { }
-                {
-                    ++modelsAllFailed;
-                }
-            }
-
-            if (totalTasks == modelsNoFailed)
-            {
-                return LaunchStatus.FinishedNoFailed;
-            }
-            if (totalTasks == modelsAllFailed)
-            {
-                return LaunchStatus.FinishedAllFailed;
-            }
-            return LaunchStatus.FinishedSomeFailed;
-        }
-
-        private async Task OnLaunchFinished(Launch launch, LaunchStatus launchStatus)
+        private async Task OnLaunchFinished(Launch launch, Task<ModelAndAlgorithmStatuses>[] modelsTasks)
         {
             launch.EndTime = DateTime.UtcNow;
             launch.Duration = launch.EndTime - launch.StartTime;
-            launch.Status = launchStatus;
+            launch.Status = Launch.GetLaunchStatus(modelsTasks);
+            launch.OptimizationAlgorithm = OptimizationAlgorithm.UpdateModelsAlgorithmsStatuses(
+                OptimizationAlgorithm.FromJsonElement(launch.OptimizationAlgorithm.RootElement),
+                modelsTasks
+            );
+            
             try
             {
                 await LaunchesRepository.Update(launch);
@@ -534,19 +517,23 @@ namespace UhlnocsServer.Optimizations
 
         private ModelStatus GetModelStatus(Task<List<CharacteristicValue>>[] calculationsTasks)
         {
-            int totalTasks = calculationsTasks.Length;
+            int totalTasks = 0;
             int completedTasks = 0;
             int failedTasks = 0;
             foreach (Task<List<CharacteristicValue>> task in calculationsTasks)
             {
-                if (task.Result == null)
+                if (task != null)
                 {
-                    ++failedTasks;
-                }
-                else
-                {
-                    ++completedTasks;
-                }
+                    ++totalTasks;
+                    if (task.Result == null)
+                    {
+                        ++failedTasks;
+                    }
+                    else
+                    {
+                        ++completedTasks;
+                    }
+                }               
             }
 
             if (totalTasks == completedTasks)

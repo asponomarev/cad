@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
+using UhlnocsServer.Calculations;
 using UhlnocsServer.Models.Properties;
 
 namespace UhlnocsServer.Optimizations
@@ -10,10 +11,13 @@ namespace UhlnocsServer.Optimizations
 
         public string VariableParameter { get; set; }
 
+        public Dictionary<string, AlgorithmStatus> ModelsAlgorithmsStatuses { get; set; }
+
         public OptimizationAlgorithm(AlgorithmType type, string variableParameter)
         {
             Type = type;
             VariableParameter = variableParameter;
+            ModelsAlgorithmsStatuses = new Dictionary<string, AlgorithmStatus>();
         }
 
         public static bool IsPointGood(double X, double Y, double Accuracy)
@@ -60,6 +64,22 @@ namespace UhlnocsServer.Optimizations
         {
             string algorithmJsonString = ToJsonString(algorithm);
             return JsonNode.Parse(algorithmJsonString);
+        }
+
+        public static JsonDocument ToJsonDocument(OptimizationAlgorithm algorithm)
+        {
+            string jsonString = ToJsonString(algorithm);
+            return JsonDocument.Parse(jsonString);
+        }
+
+        public static JsonDocument UpdateModelsAlgorithmsStatuses(OptimizationAlgorithm originalAlgorithm,
+                                                                  Task<ModelAndAlgorithmStatuses>[] modelsTasks)
+        {
+            foreach (Task<ModelAndAlgorithmStatuses> task in modelsTasks)
+            {
+                originalAlgorithm.ModelsAlgorithmsStatuses.Add(task.Result.ModelId, task.Result.AlgorithmStatus);
+            }
+            return ToJsonDocument(originalAlgorithm);
         }
     }
 }

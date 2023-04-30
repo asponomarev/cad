@@ -84,8 +84,8 @@ namespace UhlnocsServer.Optimizations
             else
             {
                 LastValue = CurrentRate;
-                }
-            return AlgorithmStatus.Calculating;
+            }
+            return AlgorithmStatus.FoundSaturationPoint;
         }
     }
 }
