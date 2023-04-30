@@ -50,5 +50,33 @@ namespace UhlnocsServer.Calculations
         public TimeSpan? Duration { get; set; }
 
         public List<Calculation> Calculations { get; } = new List<Calculation>();
+
+        public static LaunchStatus GetLaunchStatus(Task<ModelAndAlgorithmStatuses>[] modelsTasks)
+        {
+            int totalTasks = modelsTasks.Length;
+            int modelsNoFailed = 0;
+            int modelsAllFailed = 0;
+            foreach (Task<ModelAndAlgorithmStatuses> task in modelsTasks)
+            {
+                if (task.Result.ModelStatus == ModelStatus.FinishedNoFailed)
+                {
+                    ++modelsNoFailed;
+                }
+                else if (task.Result.ModelStatus == ModelStatus.FinishedAllFailed) { }
+                {
+                    ++modelsAllFailed;
+                }
+            }
+
+            if (totalTasks == modelsNoFailed)
+            {
+                return LaunchStatus.FinishedNoFailed;
+            }
+            if (totalTasks == modelsAllFailed)
+            {
+                return LaunchStatus.FinishedAllFailed;
+            }
+            return LaunchStatus.FinishedSomeFailed;
+        }
     }
 }
