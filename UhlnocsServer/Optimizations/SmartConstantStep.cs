@@ -36,7 +36,7 @@ namespace UhlnocsServer.Optimizations
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {

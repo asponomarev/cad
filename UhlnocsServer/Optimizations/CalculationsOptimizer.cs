@@ -174,21 +174,21 @@ namespace UhlnocsServer.Optimizations
             /* Constant Step Search */
             if (optimizationAlgorithm is ConstantStep constantStep)
             {
+                StringParameterInfo parameterInfo = null;
                 if (valueType == PropertyValueType.Bool)
                 {
                     constantStep.Iterations = 2;
                 }
                 else if (valueType == PropertyValueType.String)
                 {
-                    StringParameterInfo parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
+                    parameterInfo = modelConfiguration.GetStringParameterInfo(variableParameterId);
                     constantStep.Iterations = parameterInfo.PossibleValues.Count;
-                    constantStep.ParameterInfo = parameterInfo;
                 }
                 calculationsTasks = new Task<List<CharacteristicValue>>[constantStep.Iterations];
 
                 for (int i = 0; i < constantStep.Iterations; ++i)
                 {
-                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
+                    List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter, parameterInfo);
 
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
                                                                                                          modelConfiguration,
