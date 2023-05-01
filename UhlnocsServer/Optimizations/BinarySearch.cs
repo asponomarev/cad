@@ -39,7 +39,7 @@ namespace UhlnocsServer.Optimizations
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {
@@ -70,20 +70,23 @@ namespace UhlnocsServer.Optimizations
                     return AlgorithmStatus.FirstPointIsBad;
                 }
             }
-            if (iteration == 1)
+            else if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return AlgorithmStatus.LastPointIsGood;
                 }
             }
-            if (IsPointGood(CurrentRate, throughput, Accuracy))
-            {
-                FirstValue = CurrentRate;
-            }
             else
             {
-                LastValue = CurrentRate;
+                if (IsPointGood(CurrentRate, throughput, Accuracy))
+                {
+                    FirstValue = CurrentRate;
+                }
+                else
+                {
+                    LastValue = CurrentRate;
+                }
             }
             return AlgorithmStatus.FoundSaturationPoint;
         }

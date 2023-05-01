@@ -20,21 +20,21 @@ namespace UhlnocsServer.Optimizations
             Iterations = iterations;
         }
 
-        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, 
-                                                                int iteration, PropertyValueType valueType, ParameterValue variableParameter)
+        public List<ParameterValue> MakeCalculationParameters(List<ParameterValue> parameters, string variableParameterId, int iteration, 
+                                                            PropertyValueType valueType, ParameterValue variableParameter, StringParameterInfo? parameterInfo)
         {
             List<ParameterValue> calculationParameters = new();
             foreach (ParameterValue parameter in parameters)
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {
                     if (valueType == PropertyValueType.String)
                     {
-                        string variableParameterValue = ParameterInfo.PossibleValues[iteration];
+                        string variableParameterValue = parameterInfo.PossibleValues[iteration];
                         calculationParameters.Add(new StringParameterValue(variableParameterId, variableParameterValue));
                     }
                     else if (valueType == PropertyValueType.Bool)

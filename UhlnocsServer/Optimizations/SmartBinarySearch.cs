@@ -49,7 +49,7 @@ namespace UhlnocsServer.Optimizations
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {
@@ -85,46 +85,49 @@ namespace UhlnocsServer.Optimizations
                     return AlgorithmStatus.FirstPointIsBad;
                 }
             }
-            if (iteration == 1)
+            else if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return AlgorithmStatus.LastPointIsGood;
                 }
             }
-            if (IsPointGood(CurrentRate, throughput, Accuracy))
-            {
-                FirstValue = CurrentRate;
-                if (FirstChangedBorder == null)
-                {
-                    FirstChangedBorder = "Left";
-                }
-                else if (FirstChangedBorder == "Right")
-                {
-                    BothBordersChanged = true;
-                }
-                else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
-                {
-                    ReachedSaturationPoint = true;
-                }
-            }
             else
             {
-                LastValue = CurrentRate;
-                if (FirstChangedBorder == null)
+                if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
-                    FirstChangedBorder = "Right";
+                    FirstValue = CurrentRate;
+                    if (FirstChangedBorder == null)
+                    {
+                        FirstChangedBorder = "Left";
+                    }
+                    else if (FirstChangedBorder == "Right")
+                    {
+                        BothBordersChanged = true;
+                    }
+                    else if (FirstChangedBorder == "Left" && BothBordersChanged == true)
+                    {
+                        ReachedSaturationPoint = true;
+                    }
                 }
-                else if (FirstChangedBorder == "Left")
+                else
                 {
-                    BothBordersChanged = true;
-                }
-                else if (FirstChangedBorder == "Right" && BothBordersChanged == true)
-                {
-                    ReachedSaturationPoint = true;
+                    LastValue = CurrentRate;
+                    if (FirstChangedBorder == null)
+                    {
+                        FirstChangedBorder = "Right";
+                    }
+                    else if (FirstChangedBorder == "Left")
+                    {
+                        BothBordersChanged = true;
+                    }
+                    else if (FirstChangedBorder == "Right" && BothBordersChanged == true)
+                    {
+                        ReachedSaturationPoint = true;
+                    }
                 }
             }
             return AlgorithmStatus.Calculating;
-        }      
+        }
     }
 }

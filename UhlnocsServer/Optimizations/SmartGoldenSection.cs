@@ -57,7 +57,7 @@ namespace UhlnocsServer.Optimizations
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {
@@ -109,44 +109,47 @@ namespace UhlnocsServer.Optimizations
                     return AlgorithmStatus.FirstPointIsBad;
                 }
             }
-            if (iteration == 1)
+            else if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return AlgorithmStatus.LastPointIsGood;
                 }
             }
-            if (LastFoundPoint == "X1")
+            else
             {
-                if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
+                if (LastFoundPoint == "X1")
                 {
-                    LastValue = X1;
-                    NextPoint = "X1";
-                }
-            }
-            else // LastFoundPoint == X2
-            {
-                if (IsPointGood(CurrentRate, throughput, Accuracy))
-                {
-                    FirstValue = X2;
-                    if (InMiddleSegment == true)
+                    if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
                     {
-                        return AlgorithmStatus.FoundSaturationPoint;
+                        LastValue = X1;
+                        NextPoint = "X1";
                     }
                 }
-                else // X2 - bad
+                else // LastFoundPoint == X2
                 {
-                    FirstValue = X1;
-                    LastValue = X2;
-                    if (InMiddleSegment == true)
+                    if (IsPointGood(CurrentRate, throughput, Accuracy))
                     {
-                        ReachedSaturationPoint = true;
+                        FirstValue = X2;
+                        if (InMiddleSegment == true)
+                        {
+                            return AlgorithmStatus.FoundSaturationPoint;
+                        }
                     }
-                    else
+                    else // X2 - bad
                     {
-                        InMiddleSegment = true;
+                        FirstValue = X1;
+                        LastValue = X2;
+                        if (InMiddleSegment == true)
+                        {
+                            ReachedSaturationPoint = true;
+                        }
+                        else
+                        {
+                            InMiddleSegment = true;
+                        }
                     }
-                }            
+                }
             }
             return AlgorithmStatus.Calculating;
         }

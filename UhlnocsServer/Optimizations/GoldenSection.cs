@@ -50,7 +50,7 @@ namespace UhlnocsServer.Optimizations
             {
                 if (parameter.Id != variableParameterId)
                 {
-                    calculationParameters.Add(parameter);  // this may be bad
+                    calculationParameters.Add(parameter);
                 }
                 else
                 {
@@ -94,31 +94,34 @@ namespace UhlnocsServer.Optimizations
                     return AlgorithmStatus.FirstPointIsBad;
                 }
             }
-            if (iteration == 1)
+            else if (iteration == 1)
             {
                 if (IsPointGood(CurrentRate, throughput, Accuracy))
                 {
                     return AlgorithmStatus.LastPointIsGood;
                 }
             }
-            if (LastFoundPoint == "X1")
+            else
             {
-                if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
+                if (LastFoundPoint == "X1")
                 {
-                    LastValue = X1;
-                    NextPoint = "X1";
+                    if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
+                    {
+                        LastValue = X1;
+                        NextPoint = "X1";
+                    }
                 }
-            }
-            else // LastFoundPoint == X2
-            {
-                if (IsPointGood(CurrentRate, throughput, Accuracy))
+                else // LastFoundPoint == X2
                 {
-                    FirstValue = X2;
-                }
-                else // X2 - bad
-                {
-                    FirstValue = X1;
-                    LastValue = X2;
+                    if (IsPointGood(CurrentRate, throughput, Accuracy))
+                    {
+                        FirstValue = X2;
+                    }
+                    else // X2 - bad
+                    {
+                        FirstValue = X1;
+                        LastValue = X2;
+                    }
                 }
             }
             return AlgorithmStatus.FoundSaturationPoint;
