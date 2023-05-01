@@ -2,7 +2,7 @@
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Values;
 using UhlnocsServer.Models.Properties;
-
+using UhlnocsServer.Models.Properties.Parameters.Infos;
 
 namespace Tests
 {
@@ -21,18 +21,34 @@ namespace Tests
             };
             int iterations = 5;
             double step = 2;
-            string variableParameterId = "Parameter1";
-            ConstantStep constantStep = new ConstantStep(variableParameterId, step, iterations);
-            PropertyValueType valueType = PropertyValueType.Int;
-            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, variableParameterId);
+            ConstantStep constantStep = new ConstantStep("Parameter1", step, iterations);
+            StringParameterInfo parameterInfo = new StringParameterInfo("Parameter3","","","", new List<string>(){"First","Second","Third"});
+            ParameterValue variableParameter = ParameterValue.GetFromListById(parameters, "Parameter1");
+
             List<ParameterValue> calculationParameters = new();
+            ParameterValue calculatedParameter;
             for (int i = 0; i < constantStep.Iterations; ++i)
             {
-                calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter);
+                if (i == 0)
+                {
+                    calculationParameters = constantStep.MakeCalculationParameters(parameters, "Parameter3", i, PropertyValueType.String, variableParameter, parameterInfo);
+                    calculatedParameter = ParameterValue.GetFromListById(calculationParameters, "Parameter3");
+                    string stringValue = ((StringParameterValue)calculatedParameter).Value;
+                    Assert.That(stringValue, Is.EqualTo("First")); // проверка, что рассчитанный строковый параметр соответствует ожиданию
+
+                    calculationParameters = constantStep.MakeCalculationParameters(parameters, "Parameter4", i, PropertyValueType.Bool, variableParameter, parameterInfo);
+                    calculatedParameter = ParameterValue.GetFromListById(calculationParameters, "Parameter4");
+                    bool boolValue = ((BoolParameterValue)calculatedParameter).Value;
+                    Assert.That(boolValue, Is.EqualTo(true)); // проверка, что рассчитанный логический параметр соответствует ожиданию
+                }
+                calculationParameters = constantStep.MakeCalculationParameters(parameters, "Parameter1", i, PropertyValueType.Int, variableParameter, parameterInfo);
+
             }
-            variableParameter = ParameterValue.GetFromListById(calculationParameters, variableParameterId);
-            int CalculatedValue = ((IntParameterValue)variableParameter).Value;
-            Assert.That(CalculatedValue, Is.EqualTo(9)); // проверка, что рассчитанный параметр соответствует ожиданию
+            calculatedParameter = ParameterValue.GetFromListById(calculationParameters, "Parameter1");
+            int intValue = ((IntParameterValue)calculatedParameter).Value;
+            Assert.That(intValue, Is.EqualTo(9)); // проверка, что рассчитанный целочисленный параметр соответствует ожиданию
+
+
         }
 
         [Test]
@@ -125,6 +141,7 @@ namespace Tests
 
                 if (iteration == 2)
                 {
+                    Assert.That(smartBinarySearch.FirstChangedBorder, Is.EqualTo(null)); // проверка, что первые две итерации не повлияли на поля класса
                     throughputCharacteristicValue = 0;
                     Status = smartBinarySearch.MoveBorder(throughputCharacteristicValue, iteration);
                     Assert.Multiple(() =>
