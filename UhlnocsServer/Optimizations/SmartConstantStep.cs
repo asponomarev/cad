@@ -40,14 +40,7 @@ namespace UhlnocsServer.Optimizations
                 }
                 else
                 {
-                    if (iteration == 0)
-                    {
-                        CurrentRate = FirstValue;
-                    }
-                    else
-                    {
-                        CurrentRate = FirstValue + Step * iteration;
-                    }
+                    CurrentRate = FirstValue + Step * iteration;
                     calculationParameters.Add(new DoubleParameterValue(variableParameterId, CurrentRate));
                 }
             }
