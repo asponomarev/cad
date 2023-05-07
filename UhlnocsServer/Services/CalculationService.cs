@@ -3,7 +3,7 @@ using Grpc.Core;
 using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Optimizations;
-using static UhlnocsServer.Utils.ExceptionUtils;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Services
 {
@@ -50,7 +50,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowBadRequestException(exception);
+                ExceptionUtils.ThrowBadRequestException(exception);
             }
 
             LaunchConfiguration enhancedConfiguration = await ConfigurationEnhancer.GetModifiedLaunchConfiguration(configuration);
@@ -75,7 +75,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowBadRequestException(exception);
+                ExceptionUtils.ThrowBadRequestException(exception);
             }
 
             string launchId = Guid.NewGuid().ToString();

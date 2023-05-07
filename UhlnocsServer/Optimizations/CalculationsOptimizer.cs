@@ -10,8 +10,7 @@ using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Infos;
 using UhlnocsServer.Models.Properties.Parameters.Values;
 using UhlnocsServer.Services;
-using static UhlnocsServer.Utils.ExceptionUtils;
-using static UhlnocsServer.Utils.PropertiesHolder;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Optimizations
 {
@@ -26,8 +25,8 @@ namespace UhlnocsServer.Optimizations
         private readonly IRepository<ParametersSet> ParametersRepository;
         private readonly IRepository<CharacteristicsSet> CharacteristicsRepository;
 
-        public readonly string TmpDirectory = ModelSettings.GetValue<string>("tmpDirectory");
-        public readonly string ModelsDirectory = ModelSettings.GetValue<string>("modelsDirectory");
+        public readonly string TmpDirectory = PropertiesHolder.ModelSettings.GetValue<string>("tmpDirectory");
+        public readonly string ModelsDirectory = PropertiesHolder.ModelSettings.GetValue<string>("modelsDirectory");
 
         public CalculationsOptimizer(IRepository<Model> modelsRepository,
                                      IRepository<Launch> launchesRepository,
@@ -48,11 +47,11 @@ namespace UhlnocsServer.Optimizations
             List<List<ParameterValue>> modelParametersValues = new();
             try
             {
-                List<JsonDocument> parametersValuesDocuments = (from ps in ParametersRepository.Get()
-                                                                join c in CalculationsRepository.Get()
-                                                                on ps.Hash equals c.ParametersHash
-                                                                where c.ModelId == modelId
-                                                                select ps.ParametersValuesJson).ToList();
+                List<JsonDocument>  parametersValuesDocuments = CalculationsRepository.Get()
+                                                                    .Where(c => c.ModelId == modelId)
+                                                                    .Include(c => c.CharacteristicsSet)
+                                                                    .Select(c => c.CharacteristicsSet.CharacteristicsValuesJson)
+                                                                    .ToList();
 
                 foreach (JsonDocument parametersValuesDocument in parametersValuesDocuments)
                 {
@@ -61,7 +60,7 @@ namespace UhlnocsServer.Optimizations
             }
             catch (Exception exception)
             {
-                ThrowInternalException(exception);
+                ExceptionUtils.ThrowInternalException(exception);
             }
             return Task.FromResult(modelParametersValues);
         }
@@ -164,7 +163,7 @@ namespace UhlnocsServer.Optimizations
             {
                 string LogFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to get model due to database error!" + Environment.NewLine +
-                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(LogFilePath, message);
                 return new ModelAndAlgorithmStatuses(modelId, ModelStatus.FinishedAllFailed, AlgorithmStatus.Undefined);
             }
@@ -499,7 +498,7 @@ namespace UhlnocsServer.Optimizations
             {
                 string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
                 string message = "Unable to create launch due to database error!" + Environment.NewLine +
-                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(LogFilePath, message);
                 noCreateLaunchError = false;
             }
@@ -524,7 +523,7 @@ namespace UhlnocsServer.Optimizations
             {
                 string LogFilePath = GetLaunchTmpFilePath(launch.Id, LogFileName);
                 string message = "Unable to update launch due to database error!" + Environment.NewLine +
-                                 GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(LogFilePath, message);
             }
         }
@@ -695,7 +694,7 @@ namespace UhlnocsServer.Optimizations
                 noGetParametersSetError = false;
                 string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to get parameters set due to database exception!" + Environment.NewLine
-                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 + ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
             // got error while getting parameters
@@ -725,7 +724,7 @@ namespace UhlnocsServer.Optimizations
                 noCreateParametersSetError = false;
                 string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to create parameters set due to database exception!" + Environment.NewLine
-                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 + ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
 
@@ -748,7 +747,7 @@ namespace UhlnocsServer.Optimizations
             {
                 string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to find characteristics set due to database exception!" + Environment.NewLine
-                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 + ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
             return characteristicsSet;
@@ -784,7 +783,7 @@ namespace UhlnocsServer.Optimizations
                 noCreateCalculationError = false;
                 string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to create calculation due to database exception!" + Environment.NewLine
-                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 + ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
             return noCreateCalculationError;
@@ -819,7 +818,7 @@ namespace UhlnocsServer.Optimizations
                 noCreateCalculationError = false;
                 string logFilePath = GetModelTmpFilePath(launchId, modelId, LogFileName);
                 string message = "Unable to create calculation due to database exception!" + Environment.NewLine
-                                 + GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
+                                 + ExceptionUtils.GetExceptionMessage(exception) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
 
@@ -855,7 +854,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task OnCalculationException(Calculation calculation, Exception exception, string messagePrefix)
         {
-            calculation.Message = messagePrefix + Environment.NewLine + GetExceptionMessage(exception);
+            calculation.Message = messagePrefix + Environment.NewLine + ExceptionUtils.GetExceptionMessage(exception);
             calculation.EndTime = DateTime.UtcNow;
             calculation.Duration = calculation.EndTime - calculation.StartTime;
             calculation.Status = CalculationStatus.Failed;
@@ -870,7 +869,7 @@ namespace UhlnocsServer.Optimizations
                                  Environment.NewLine + "Calculation exception info" + Environment.NewLine +
                                  calculation.Message + Environment.NewLine +
                                  "Database exception info" + Environment.NewLine +
-                                 GetExceptionMessage(databaseException) + Environment.NewLine + Environment.NewLine;
+                                 ExceptionUtils.GetExceptionMessage(databaseException) + Environment.NewLine + Environment.NewLine;
                 SafeAppendToFile(logFilePath, message);
             }
         }
