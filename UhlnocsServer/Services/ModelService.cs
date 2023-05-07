@@ -8,8 +8,7 @@ using UhlnocsServer.Models.Properties;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Users;
-using static UhlnocsServer.Utils.ExceptionUtils;
-using static UhlnocsServer.Utils.PropertiesHolder;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Services
 {
@@ -19,9 +18,9 @@ namespace UhlnocsServer.Services
         private readonly IRepository<Model> ModelsRepository;
         private readonly UserService UserService;
 
-        public readonly string TmpDirectory = ModelSettings.GetValue<string>("tmpDirectory");
-        public readonly string ModelsDirectory = ModelSettings.GetValue<string>("modelsDirectory");
-        public readonly int BufferSize = ModelSettings.GetValue<int>("modelServiceBufferSize");
+        public readonly string TmpDirectory = PropertiesHolder.ModelSettings.GetValue<string>("tmpDirectory");
+        public readonly string ModelsDirectory = PropertiesHolder.ModelSettings.GetValue<string>("modelsDirectory");
+        public readonly int BufferSize = PropertiesHolder.ModelSettings.GetValue<int>("modelServiceBufferSize");
 
         // TODO: add lock on assign to these two variables
         public static volatile Dictionary<string, ParameterWithModels> ParametersWithModels = new();
@@ -44,7 +43,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowInternalException(exception);
+                ExceptionUtils.ThrowInternalException(exception);
             }
 
             Dictionary<string, ParameterWithModels> newParametersWithModels = new();
@@ -120,7 +119,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception) 
             {
-                ThrowBadRequestException(exception);
+                ExceptionUtils.ThrowBadRequestException(exception);
             }
 
             Model model = new(configuration.Id, configurationJsonDocument);
@@ -130,7 +129,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
             SetPropertiesInfoWithModels();
 
@@ -151,7 +150,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             if (model == null)
@@ -180,7 +179,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowBadRequestException(exception);
+                ExceptionUtils.ThrowBadRequestException(exception);
             }
 
             Model? model = null;
@@ -190,7 +189,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
             if (model == null)
             {
@@ -212,7 +211,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
             SetPropertiesInfoWithModels();
 
@@ -243,7 +242,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             return new ModelEmptyMessage
@@ -276,7 +275,7 @@ namespace UhlnocsServer.Services
                     }
                     catch (Exception exception)
                     {
-                        ThrowUnknownException(exception);
+                        ExceptionUtils.ThrowUnknownException(exception);
                     }
                     if (model == null)
                     {
@@ -300,7 +299,7 @@ namespace UhlnocsServer.Services
                         }
                         catch (Exception exception)
                         {
-                            ThrowUnknownException(exception);
+                            ExceptionUtils.ThrowUnknownException(exception);
                         }
                     }
 
@@ -317,7 +316,7 @@ namespace UhlnocsServer.Services
                 catch (Exception exception)
                 {
                     fs.Close();
-                    ThrowUnknownException(exception);
+                    ExceptionUtils.ThrowUnknownException(exception);
                 }
             }
 
@@ -329,7 +328,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             return new ModelEmptyMessage
@@ -352,7 +351,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
             if (model == null)
             {
@@ -385,7 +384,7 @@ namespace UhlnocsServer.Services
             catch (Exception exception)
             {
                 File.Delete(modelZipFilePath);
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
             File.Delete(modelZipFilePath);
         }
@@ -401,7 +400,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowInternalException(exception);
+                ExceptionUtils.ThrowInternalException(exception);
             }
             return configuration;
         }
@@ -419,7 +418,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowInternalException(exception);
+                ExceptionUtils.ThrowInternalException(exception);
             }
             return Task.FromResult(performance);
         }

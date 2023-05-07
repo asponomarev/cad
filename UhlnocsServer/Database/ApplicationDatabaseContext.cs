@@ -2,17 +2,17 @@
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Models;
 using UhlnocsServer.Users;
-using static UhlnocsServer.Utils.PropertiesHolder;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Database
 {
     public class ApplicationDatabaseContext : DbContext
     {
-        private static readonly string ConnectionString = $"Host={DatabaseSettings["host"]};" +
-                                                          $"Port={DatabaseSettings["port"]};" +
-                                                          $"Database={DatabaseSettings["database"]};" +
-                                                          $"Username={DatabaseSettings["username"]};" +
-                                                          $"Password={DatabaseSettings["password"]}";
+        private static readonly string ConnectionString = $"Host={PropertiesHolder.DatabaseSettings["host"]};" +
+                                                          $"Port={PropertiesHolder.DatabaseSettings["port"]};" +
+                                                          $"Database={PropertiesHolder.DatabaseSettings["database"]};" +
+                                                          $"Username={PropertiesHolder.DatabaseSettings["username"]};" +
+                                                          $"Password={PropertiesHolder.DatabaseSettings["password"]}";
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Model> Models { get; set; } = null!;
         public DbSet<Launch> Launches { get; set; } = null!;
