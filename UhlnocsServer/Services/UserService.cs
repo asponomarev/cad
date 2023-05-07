@@ -1,14 +1,14 @@
 ﻿using Grpc.Core;
 using UhlnocsServer.Database;
 using UhlnocsServer.Users;
-using static UhlnocsServer.Utils.PropertiesHolder;
-using static UhlnocsServer.Utils.ExceptionUtils;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Services
 {
     public class UserService : UserServiceProto.UserServiceProtoBase
     {
-        private static readonly List<string> Admins = AdminSettings.GetSection("admins").Get<List<string>>();
+        private static readonly List<string> Admins = PropertiesHolder.UserSettings.GetSection("admins").Get<List<string>>();
+        private static readonly string GlobalPasswordSalt = PropertiesHolder.UserSettings.GetSection("globalPasswordSalt").Get<string>();
 
         private readonly ILogger<UserService> Logger;
         private readonly IRepository<User> UsersRepository;
@@ -39,7 +39,7 @@ namespace UhlnocsServer.Services
                 user = await UsersRepository.GetById(userId);
             } catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             if (user == null)
@@ -50,12 +50,12 @@ namespace UhlnocsServer.Services
             return user;
         }
 
-        public override async Task<UserIdMessage> SignUpUser(UserWithoutIdRequest request, ServerCallContext context)
-        {
+        public override async Task<UserEmptyMessage> SignUpUser(UserFullDataMessage request, ServerCallContext context)
+        {           
             User user = new(
-                Guid.NewGuid().ToString(),
+                request.Id,
                 request.Email,
-                request.Password,
+                GetHashedPassword(request.Password), // we do not want to store passwords in database as plain text
                 request.Name,
                 request.Surname,
                 request.Description
@@ -66,50 +66,45 @@ namespace UhlnocsServer.Services
                 await UsersRepository.Create(user);
             } catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
-            return new UserIdMessage
-            {
-                Id = user.Id
-            };
+            return new UserEmptyMessage { };
         }
 
-        public override Task<UserFullDataMessage> SignInUser(UserSignInRequest request, ServerCallContext context)
+        public override async Task<UserFullDataMessage> SignInUser(UserSignInRequest request, ServerCallContext context)
         {
             User? user = null;
             try
             {
-                user = UsersRepository.Get().FirstOrDefault(u => u.Email == request.Email);
+                user = await UsersRepository.GetById(request.Id);
             } catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }  
             
             if (user == null)
             {
-                string exceptionMessage = $"User with email '{request.Email}' not found";
+                string exceptionMessage = $"User with id '{request.Id}' not found";
                 throw new RpcException(new Status(StatusCode.NotFound, exceptionMessage));
             }
-            if (user.Password != request.Password)
+            if (user.Password != GetHashedPassword(request.Password))  // password from database is hashed
             {
-                string exceptionMessage = $"Password '{request.Password}' is incorrect for user with email '{request.Email}'";
+                string exceptionMessage = $"Password '{request.Password}' is incorrect for user with id '{request.Id}'";
                 throw new RpcException(new Status(StatusCode.PermissionDenied, exceptionMessage));
             }
 
-            return Task.FromResult(
-                new UserFullDataMessage {
-                    Id = user.Id,
-                    Email = user.Email,
-                    Password = user.Password,
-                    Name = user.Name,
-                    Surname = user.Surname,
-                    Description = user.Description
-                }
-            );
+            return new UserFullDataMessage {
+                Id = user.Id,
+                Email = user.Email,
+                Password = request.Password,  // not hashed user password
+                Name = user.Name,
+                Surname = user.Surname,
+                Description = user.Description
+            };
         }
 
-        public override async Task<EmptyMessage> DeleteUser(UserIdMessage request, ServerCallContext context)
+        public override async Task<UserEmptyMessage> DeleteUser(UserIdMessage request, ServerCallContext context)
         {
             User sender = await AuthenticateUser(context);
             if (IsNotAdmin(sender.Id)) 
@@ -123,13 +118,13 @@ namespace UhlnocsServer.Services
                 await UsersRepository.Delete(request.Id);
             } catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
-            return new EmptyMessage { };
+            return new UserEmptyMessage { };
         }
 
-        public override async Task<EmptyMessage> UpdateUser(UserFullDataMessage request, ServerCallContext context)
+        public override async Task<UserEmptyMessage> UpdateUser(UserFullDataMessage request, ServerCallContext context)
         {
             User sender = await AuthenticateUser(context);
             if (sender.Id != request.Id && IsNotAdmin(sender.Id))
@@ -149,10 +144,10 @@ namespace UhlnocsServer.Services
                 await UsersRepository.Update(sender);
             } catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
-            return new EmptyMessage { };
+            return new UserEmptyMessage { };
         }
 
         public override async Task<UserFullDataMessage> GetUserFullData(UserIdMessage request,  ServerCallContext context)
@@ -171,7 +166,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             if (result == null)
@@ -202,7 +197,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             if (result == null)
@@ -238,7 +233,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             UsersOpenDataReply usersOpenData = new UsersOpenDataReply { };
@@ -257,7 +252,7 @@ namespace UhlnocsServer.Services
             return usersOpenData;
         }
 
-        public override async Task<UsersOpenDataReply> GetAllUsersOpenData(EmptyMessage request, ServerCallContext context)
+        public override async Task<UsersOpenDataReply> GetAllUsersOpenData(UserEmptyMessage request, ServerCallContext context)
         {
             await AuthenticateUser(context);
 
@@ -268,7 +263,7 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
-                ThrowUnknownException(exception);
+                ExceptionUtils.ThrowUnknownException(exception);
             }
 
             UsersOpenDataReply usersOpenData = new UsersOpenDataReply { };
@@ -285,6 +280,12 @@ namespace UhlnocsServer.Services
                 usersOpenData.Users.Add(userOpenData);
             }
             return usersOpenData;
+        }
+
+        private static string GetHashedPassword(string userPassword)
+        {
+            string saltedPassword = userPassword + GlobalPasswordSalt;
+            return HashUtils.GetHashCode(saltedPassword);
         }
     }
 }

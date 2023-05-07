@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using UhlnocsServer.Models.Properties.Parameters.Values;
 using UhlnocsServer.Services;
+using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Models.Properties.Parameters
 {
@@ -116,20 +117,8 @@ namespace UhlnocsServer.Models.Properties.Parameters
 
         public static string GetHashCode(List<ParameterValue> parameters, string modelId) 
         {
-            var hash = string.Empty;
-            using (var hashAlgorithm = SHA256.Create())
-            {
-                string parametersString = ListToString(parameters, modelId);
-                byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(parametersString));
-
-                var sBuilder = new StringBuilder();
-                for (int i = 0; i < data.Length; ++i)
-                {
-                    sBuilder.Append(data[i].ToString("x2"));
-                }
-                hash = sBuilder.ToString();
-            }
-            return hash;
+            string parametersString = ListToString(parameters, modelId);
+            return HashUtils.GetHashCode(parametersString);
         }
     }
 }

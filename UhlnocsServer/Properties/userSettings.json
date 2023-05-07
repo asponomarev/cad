@@ -1,0 +1,7 @@
+// this is an example of settings, not real settings used by server
+{
+  "admins": [
+    "asponomarev"
+  ],
+  "globalPasswordSalt": "_Imp4$$4b1e"
+}
