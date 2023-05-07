@@ -14,10 +14,10 @@
                                                                      .AddJsonFile("databaseSettings.json", false, true)
                                                                      .Build();
 
-        public static readonly IConfiguration AdminSettings = new ConfigurationBuilder()
-                                                                  .SetBasePath(PropertiesDirectory)
-                                                                  .AddJsonFile("adminSettings.json", false, true)
-                                                                  .Build();
+        public static readonly IConfiguration UserSettings = new ConfigurationBuilder()
+                                                                 .SetBasePath(PropertiesDirectory)
+                                                                 .AddJsonFile("userSettings.json", false, true)
+                                                                 .Build();
 
         public static readonly IConfiguration ModelSettings = new ConfigurationBuilder()
                                                                   .SetBasePath(PropertiesDirectory)

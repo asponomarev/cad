@@ -1,3 +1,4 @@
+// this is an example of settings, not real settings used by server
 {
   "username": "postgres",
   "password": "impassable",
