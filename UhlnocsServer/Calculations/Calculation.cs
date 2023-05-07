@@ -34,6 +34,9 @@ namespace UhlnocsServer.Calculations
         [Column("really_calculated")]
         public bool ReallyCalculated { get; set; }
 
+        [Column("iteration_index")]
+        public int IterationIndex { get; set; }
+
         [Column("status")]
         public CalculationStatus Status { get; set; }
 
