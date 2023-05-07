@@ -190,10 +190,12 @@ namespace UhlnocsServer.Optimizations
                 {
                     List<ParameterValue> calculationParameters = constantStep.MakeCalculationParameters(parameters, variableParameterId, i, valueType, variableParameter, parameterInfo);
 
+                    int fixedIteration = i;  // we should not pass reference to i to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
                                                                                                          modelConfiguration,
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         fixedIteration));
                     calculationsTasks[i] = calculationTask;
                 }
                 Task.WaitAll(calculationsTasks);
@@ -210,10 +212,12 @@ namespace UhlnocsServer.Optimizations
                 do
                 {
                     List<ParameterValue> calculationParameters = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    int fixedIteration = iteration;  // we should not pass reference to iteration to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
                                                                                                          modelConfiguration, 
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         fixedIteration));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
 
@@ -246,10 +250,12 @@ namespace UhlnocsServer.Optimizations
                 for (int i = 0; i < binarySearch.Iterations; ++i)
                 {
                     List<ParameterValue> calculationParameters = binarySearch.MakeCalculationParameters(parameters, variableParameterId, i);
+                    int fixedIteration = i;  // we should not pass reference to i to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
                                                                                                          modelConfiguration, 
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         fixedIteration));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;                   
                    
@@ -282,10 +288,12 @@ namespace UhlnocsServer.Optimizations
                 do
                 {
                     List<ParameterValue> calculationParameters = smartBinarySearch.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    int fixedIteration = iteration;  // we should not pass reference to iteration to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, 
                                                                                                          modelConfiguration, 
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         fixedIteration));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     
@@ -320,10 +328,12 @@ namespace UhlnocsServer.Optimizations
                 for (int i = 0; i < goldenSection.Iterations; ++i)
                 {                 
                     List<ParameterValue> calculationParameters = goldenSection.MakeCalculationParameters(parameters, variableParameterId, i);
+                    int fixedIteration = i;  // we should not pass reference to i to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId,
                                                                                                          modelConfiguration,
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         fixedIteration));
                     calculationsTasks[i] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
 
@@ -356,10 +366,12 @@ namespace UhlnocsServer.Optimizations
                 do
                 {
                     List<ParameterValue> calculationParameters = smartGoldenSection.MakeCalculationParameters(parameters, variableParameterId, iteration);
+                    int fixedIteration = iteration;  // we should not pass reference to iteration to the method below
                     Task<List<CharacteristicValue>> calculationTask = Task.Run(() => OptimizeCalculation(launchId, 
                                                                                                          modelConfiguration,
                                                                                                          calculationParameters,
-                                                                                                         recalculateExisting));
+                                                                                                         recalculateExisting,
+                                                                                                         iteration));
                     calculationsTasks[iteration] = calculationTask;
                     List<CharacteristicValue> calculationCharacteristics = await calculationTask;
                     if (calculationCharacteristics == null)
@@ -387,7 +399,8 @@ namespace UhlnocsServer.Optimizations
         public async Task<List<CharacteristicValue>> OptimizeCalculation(string launchId,
                                                                          ModelConfiguration modelConfiguration,
                                                                          List<ParameterValue> parameters,
-                                                                         bool recalculateExisting)
+                                                                         bool recalculateExisting,
+                                                                         int iterationIndex)
         {          
             string modelId = modelConfiguration.Id;
 
@@ -406,7 +419,8 @@ namespace UhlnocsServer.Optimizations
                 if (characteristicsSet != null)
                 {
                     // CREATE FAKE CALCULATION
-                    bool noCreateCalculationError = await CreateFakeCalculation(launchId, modelId, parametersHash, characteristicsSet.Id);                   
+                    bool noCreateCalculationError = await CreateFakeCalculation(launchId, modelId, parametersHash,
+                                                                                characteristicsSet.Id, iterationIndex);                   
                     if (noCreateCalculationError)
                     {
                         // RETURN CHARACTERISTICS FROM DB
@@ -420,7 +434,7 @@ namespace UhlnocsServer.Optimizations
             }
 
             // CREATE REAL CALCULATION
-            Calculation calculation = await CreateRealCalculation(launchId, modelId, parametersHash);
+            Calculation calculation = await CreateRealCalculation(launchId, modelId, parametersHash, iterationIndex);
             if (calculation == null)
             {
                 return null;
@@ -740,7 +754,9 @@ namespace UhlnocsServer.Optimizations
             return characteristicsSet;
         }
 
-        private async Task<bool> CreateFakeCalculation(string launchId, string modelId, string parametersHash, string characteristicsId)
+        private async Task<bool> CreateFakeCalculation(string launchId, string modelId,
+                                                       string parametersHash, string characteristicsId,
+                                                       int iterationIndex)
         {
             Calculation calculation = new()
             {
@@ -750,6 +766,7 @@ namespace UhlnocsServer.Optimizations
                 ParametersHash = parametersHash,
                 CharacteristicsId = characteristicsId,
                 ReallyCalculated = false,
+                IterationIndex = iterationIndex,
                 Status = CalculationStatus.Completed,
                 StartTime = DateTime.UtcNow,
                 Message = null
@@ -773,7 +790,8 @@ namespace UhlnocsServer.Optimizations
             return noCreateCalculationError;
         }
 
-        private async Task<Calculation> CreateRealCalculation(string launchId, string modelId, string parametersHash)
+        private async Task<Calculation> CreateRealCalculation(string launchId, string modelId,
+                                                              string parametersHash, int iterationIndex)
         {
             Calculation calculation = new()
             {
@@ -783,6 +801,7 @@ namespace UhlnocsServer.Optimizations
                 ParametersHash = parametersHash,
                 CharacteristicsId = null,
                 ReallyCalculated = true,
+                IterationIndex = iterationIndex,
                 Status = CalculationStatus.Running,
                 StartTime = DateTime.UtcNow,
                 EndTime = null,

@@ -5,7 +5,6 @@ using UhlnocsServer.Calculations;
 namespace UhlnocsServer.Users
 {
     [Table("users")]
-    [Microsoft.EntityFrameworkCore.Index("Email", IsUnique = true)]
     public class User
     {
         [Column("id")]
