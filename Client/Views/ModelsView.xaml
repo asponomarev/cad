@@ -1,0 +1,30 @@
+﻿<UserControl x:Class="Client.Views.ModelsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Client.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="1024" d:DesignWidth="768">
+    <Grid>
+        <Border BorderBrush="Black" BorderThickness="1" Width="845" Margin="0,226,179,300">
+            <Grid>
+                <Grid>
+                    <DataGrid x:Name="ClientCharacteristicsGrid" ItemsSource="{Binding _modelsModel.Characteristics}"  AutoGenerateColumns="False" Margin="0,0,100,0" CanUserAddRows="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Id" Binding="{Binding _id}" />
+                            <DataGridTextColumn Header="Customer Name" Binding="{Binding _name}" />
+                            <DataGridTextColumn Header="Order Date" Binding="{Binding _description}" />
+                            <DataGridTextColumn Header="Order Date" Binding="{Binding _valueType}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <Button x:Name="AddParameterButton" Content="Add Parameter" HorizontalAlignment="Left" Margin="753,58,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" RenderTransformOrigin="0.125,0.586"/>
+                <Button x:Name="DeleteParameterButton" Content="Delete Parameter" HorizontalAlignment="Left" Margin="753,125,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" IsCancel="True"/>
+
+            </Grid>
+
+        </Border>
+    </Grid>
+</UserControl>
