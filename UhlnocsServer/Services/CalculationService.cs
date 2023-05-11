@@ -169,7 +169,7 @@ namespace UhlnocsServer.Services
             };
         }
 
-        public override async Task<LaunchResultReply> GetlaunchResult(LaunchIdMessage request, ServerCallContext context)
+        public override async Task<LaunchResultReply> GetLaunchResult(LaunchIdMessage request, ServerCallContext context)
         {
             await UserService.AuthenticateUser(context);
 
@@ -200,7 +200,8 @@ namespace UhlnocsServer.Services
             OptimizationAlgorithm algorithm = OptimizationAlgorithm.FromJsonElement(launch.OptimizationAlgorithm.RootElement);
             OptimizationAlgorithmInfo optimizationAlgorithmInfo = OptimizationAlgorithm.ToInfo(algorithm);
 
-            
+            //not finished yet
+            return new LaunchResultReply { };
         }
     }
 }
