@@ -1,14 +1,7 @@
 ﻿using Client.Models.ForModelsModel;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using UhlnocsServer.Models;
-using UhlnocsServer.Models.Properties.Characteristics;
-using UhlnocsServer.Models.Properties.Parameters;
 
 namespace Client.Models
 {
