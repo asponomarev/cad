@@ -23,6 +23,19 @@ namespace UhlnocsServer.Models.Properties.Characteristics
             throw new Exception($"Characteristic with id {throughputCharacteristicId} not found in list {characteristics}");
         }
 
+        public static object? GetValue(CharacteristicValue characteristic)
+        {
+            if (characteristic is IntCharacteristicValue intCharacteristic)
+            {
+                return intCharacteristic.Value;
+            }
+            if (characteristic is DoubleCharacteristicValue doubleCharacteristic) 
+            { 
+                return doubleCharacteristic.Value;
+            }
+            return null;
+        }
+
         public static List<CharacteristicValue> ListFromJsonElement(JsonElement characteristicsElement)
         {
             List<CharacteristicValue> characteristics = new();

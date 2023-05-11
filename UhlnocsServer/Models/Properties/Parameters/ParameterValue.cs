@@ -120,5 +120,26 @@ namespace UhlnocsServer.Models.Properties.Parameters
             string parametersString = ListToString(parameters, modelId);
             return HashUtils.GetHashCode(parametersString);
         }
+
+        public static object? GetValue(ParameterValue param)
+        {
+            if (param is IntParameterValue intParam)
+            {
+                return intParam.Value;
+            }
+            if (param is DoubleParameterValue doubleParam)
+            {
+                return doubleParam.Value;
+            }
+            if (param is BoolParameterValue boolParam)
+            {
+                return boolParam.Value;
+            }
+            if (param is IntParameterValue stringParam)
+            {
+                return stringParam.Value;
+            }
+            return null;
+        }
     }
 }

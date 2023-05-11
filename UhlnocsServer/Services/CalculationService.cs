@@ -1,11 +1,16 @@
 ﻿using DSS;
 using Grpc.Core;
 using System.Data.Entity;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Calculations.LaunchesInfos;
 using UhlnocsServer.Calculations.LaunchResult;
 using UhlnocsServer.Database;
+using UhlnocsServer.Models;
+using UhlnocsServer.Models.Properties;
+using UhlnocsServer.Models.Properties.Characteristics;
+using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Optimizations;
 using UhlnocsServer.Utils;
 
@@ -178,11 +183,13 @@ namespace UhlnocsServer.Services
             {
                 // get launch and include all dependent entities
                 launch = LaunchesRepository.Get()
-                             .Where(l => l.Id == request.LaunchId)
-                             .Include(l => l.Calculations.Select(c => c.Model))
-                             .Include(l => l.Calculations.Select(c => c.ParametersSet))
-                             .Include(l => l.Calculations.Select(c => c.CharacteristicsSet))
+                             //.Where(l => l.Id == request.LaunchId)
+                             .Include(l => l.Calculations)
+                             //.Include(l => l.Calculations.Select(c => c.Model))
+                             //.Include(l => l.Calculations.Select(c => c.ParametersSet))
+                             //.Include(l => l.Calculations.Select(c => c.CharacteristicsSet))
                              .FirstOrDefault();
+
             }
             catch (Exception exception)
             {
@@ -194,14 +201,146 @@ namespace UhlnocsServer.Services
                 throw new RpcException(new Status(StatusCode.NotFound, exceptionMessage));
             }
 
-            FullLaunchInfo fullLaunchInfo = new(launch.Id, launch.Name, launch.Description, launch.UserId, launch.RecalculateExisting,
-                                                launch.DssSearchAccuracy, launch.Status, launch.StartTime, launch.EndTime, launch.Duration);
+            // create full launch info object
+            List<string> parametersSetByUser = JsonSerializer.Deserialize<List<string>>(launch.UserParameters);
+            List<CharacteristicWithModel> characteristicsWantedByUser = JsonSerializer.Deserialize<List<CharacteristicWithModel>>(launch.UserCharacteristics);
+            FullLaunchInfo fullLaunchInfo = new(launch.Id,
+                                                launch.Name,
+                                                launch.Description,
+                                                launch.UserId,
+                                                launch.RecalculateExisting,
+                                                launch.DssSearchAccuracy,
+                                                launch.Status,
+                                                launch.StartTime,
+                                                launch.EndTime,
+                                                launch.Duration,
+                                                parametersSetByUser,
+                                                characteristicsWantedByUser);
 
+            // create optimization algorithm info object
             OptimizationAlgorithm algorithm = OptimizationAlgorithm.FromJsonElement(launch.OptimizationAlgorithm.RootElement);
             OptimizationAlgorithmInfo optimizationAlgorithmInfo = OptimizationAlgorithm.ToInfo(algorithm);
 
-            //not finished yet
-            return new LaunchResultReply { };
+            // first two of these are dictionaries for comfort of use in this method
+            Dictionary<string, ModelInfo> modelsInfos = new();
+            Dictionary<string, ParameterResult> parametersResults = new();
+            List<CharacteristicResult> characteristicsResults = new();
+
+            int iterationsAmount = launch.Calculations.Max(c => c.IterationIndex);
+            List<Calculation> sortedCalculations = launch.Calculations.OrderBy(c => c.ModelId).ThenBy(c => c.IterationIndex).ToList();
+
+            foreach (Calculation calculation in sortedCalculations)
+            {
+                // create model info if not exists
+                string modelId = calculation.ModelId;
+                if (!modelsInfos.ContainsKey(modelId))
+                {
+                    string modelName = ModelConfiguration.FromJsonDocument(calculation.Model.Configuration).Name;
+                    AlgorithmStatus modelAlgorithmStatus = algorithm.ModelsAlgorithmsStatuses.GetValueOrDefault(modelId, AlgorithmStatus.Undefined);
+                    List<CalculationInfo> modelCalculationsInfos = new();
+                    ModelInfo modelInfo = new(modelId, modelName, modelAlgorithmStatus, modelCalculationsInfos);
+                    modelsInfos.Add(modelId, modelInfo);
+                }
+
+                // create calculation info and add it to model calculations info list
+                int iterationIndex = calculation.IterationIndex;
+                CalculationInfo calculationInfo = new(calculation.Id,
+                                                      calculation.Status,
+                                                      calculation.ReallyCalculated,
+                                                      iterationIndex,
+                                                      calculation.StartTime,
+                                                      calculation.EndTime,
+                                                      calculation.Duration,
+                                                      calculation.Message);
+                modelsInfos[modelId].CalculationsInfos.Add(calculationInfo);
+               
+                // fill in parameters results
+                List<ParameterValue> parameters = ParameterValue.ListFromJsonDocument(calculation.ParametersSet.ParametersValuesJson);
+                foreach (ParameterValue parameter in parameters)
+                {
+                    // create parameter result if not exists
+                    string parameterId = parameter.Id;
+
+                    if (!parametersResults.ContainsKey(parameterId))
+                    {
+                        List<string> usedByModels = new();
+                        List<object?> parameterValues = new();
+                        for (int i = 0; i < iterationsAmount; ++i)
+                        {
+                            parameterValues.Add(null);
+                        }
+                        ParameterResult parameterResult = new(parameterId, usedByModels, parameterValues);
+                        parametersResults.Add(parameterId, parameterResult);
+                    }
+
+                    // add model to list of models which use this parameter
+                    if (!parametersResults[parameterId].UsedByModels.Contains(modelId))
+                    {
+                        parametersResults[parameterId].UsedByModels.Add(modelId);
+                    }
+
+                    // add parameter value at iteration to list of parameter values
+                    if (parametersResults[parameterId].Values[iterationIndex] == null)
+                    {
+                        parametersResults[parameterId].Values[iterationIndex] = ParameterValue.GetValue(parameter);
+                    }                   
+                }
+
+                // fill in characteristics results
+                List<CharacteristicValue> characteristics = CharacteristicValue.ListFromJsonElement(calculation.CharacteristicsSet.CharacteristicsValuesJson.RootElement);
+                foreach (CharacteristicValue characteristic in characteristics)
+                {
+                    string characteristicId = characteristic.Id;
+
+                    bool characteristicNotFound = true;
+                    int characteristicIndexInResult = 0;
+                    while (characteristicIndexInResult < characteristicsResults.Count && characteristicNotFound)
+                    {
+                        if (characteristicsResults[characteristicIndexInResult].Id == characteristicId &&
+                            characteristicsResults[characteristicIndexInResult].CalculatedByModel == modelId)
+                        {
+                            characteristicNotFound = false;
+                        }
+                        else
+                        {
+                            ++characteristicIndexInResult;
+                        }
+                    }
+
+                    // create characteristic result if not exists
+                    if (characteristicNotFound)
+                    {
+                        List<object?> characteristicValues = new();
+                        for (int i = 0; i < iterationsAmount; ++i)
+                        {
+                            characteristicValues.Add(null);
+                        }
+                        CharacteristicResult characteristicResult = new(characteristicId, modelId, characteristicValues);
+                    }
+
+                    // add characteristic value at iteration to list of characteristic values
+                    if (characteristicsResults[characteristicIndexInResult].Values[iterationIndex] == null)
+                    {
+                        characteristicsResults[characteristicIndexInResult].Values[iterationIndex] = CharacteristicValue.GetValue(characteristic);
+                    }
+                }
+            }
+
+            // create launch result object
+            List<ModelInfo> sortedModelsInfos = modelsInfos.Values.OrderBy(mi => mi.ModelId).ToList();
+            List<ParameterResult> sortedParametersResults = parametersResults.Values.OrderBy(pr => pr.Id).ToList();
+            List<CharacteristicResult> sortedCharacteristicResults = characteristicsResults.OrderBy(cr => cr.Id).ThenBy(cr => cr.CalculatedByModel).ToList();
+            LaunchResult launchResult = new(fullLaunchInfo,
+                                            optimizationAlgorithmInfo,
+                                            sortedModelsInfos,
+                                            sortedParametersResults,
+                                            sortedCharacteristicResults);
+
+            string launchResultJson = LaunchResult.ToJsonString(launchResult);
+            return new LaunchResultReply 
+            {
+                LaunchResultJson = launchResultJson
+            };
         }
     }
 }

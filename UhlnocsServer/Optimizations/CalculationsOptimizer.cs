@@ -480,7 +480,7 @@ namespace UhlnocsServer.Optimizations
                 Description = launchConfiguration.Description,
                 UserId = launchConfiguration.User,
                 UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
-                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
+                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.Characteristics)),
                 OptimizationAlgorithm = OptimizationAlgorithm.ToJsonDocument(launchConfiguration.OptimizationAlgorithm),
                 RecalculateExisting = launchConfiguration.RecalculateExisting,
                 DssSearchAccuracy = launchConfiguration.DssSearchAccuracy,

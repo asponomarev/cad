@@ -1,4 +1,6 @@
-﻿namespace UhlnocsServer.Calculations.LaunchResult
+﻿using UhlnocsServer.Models.Properties.Characteristics;
+
+namespace UhlnocsServer.Calculations.LaunchResult
 {
     public class FullLaunchInfo
     {
@@ -22,9 +24,14 @@
 
         public TimeSpan? Duration { get; set; }
 
+        public List<string> ParametersSetByUser { get; set; }
+
+        public List<CharacteristicWithModel> CharacteristicsWantedByUser { get; set; }
+
         public FullLaunchInfo(string id, string name, string? description, string userId,
                               bool recalculateExisting, double? dssSearchAccuracy,
-                              LaunchStatus status, DateTime startTime, DateTime? endTime, TimeSpan? duration)
+                              LaunchStatus status, DateTime startTime, DateTime? endTime, TimeSpan? duration,
+                              List<string> parametersSetByUser, List<CharacteristicWithModel> characteristicsWantedByUser)
         {
             Id = id;
             Name = name;
@@ -36,6 +43,8 @@
             StartTime = startTime;
             EndTime = endTime;
             Duration = duration;
+            ParametersSetByUser = parametersSetByUser;
+            CharacteristicsWantedByUser = characteristicsWantedByUser;
         }
     }
 }
