@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
-using UhlnocsServer.Models.Properties;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Models.Properties.Parameters.Infos;
@@ -78,7 +77,7 @@ namespace UhlnocsServer.Models
             {
                 if (parameter.Id == parameterId)
                 {
-                    return parameter as StringParameterInfo;
+                    return (StringParameterInfo)parameter;
                 }
             }
             throw new Exception($"Model {Id} has no parameter with id {parameterId}");

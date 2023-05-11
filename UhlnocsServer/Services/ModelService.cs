@@ -106,7 +106,7 @@ namespace UhlnocsServer.Services
             };
         }
 
-        public override async Task<ModelEmptyMessage> AddModelConfiguration(ModelConfigurationMessage request, ServerCallContext context)
+        public override async Task<ModelEmptyMessage> AddModelConfiguration(ModelConfigurationRequest request, ServerCallContext context)
         {
             await UserService.AuthenticateUser(context);
 
@@ -139,7 +139,7 @@ namespace UhlnocsServer.Services
             };
         }
 
-        public override async Task<ModelConfigurationMessage> GetModelConfiguration(ModelIdRequest request,  ServerCallContext context)
+        public override async Task<ModelConfigurationReply> GetModelConfiguration(ModelIdRequest request,  ServerCallContext context)
         {
             await UserService.AuthenticateUser(context);
 
@@ -160,13 +160,43 @@ namespace UhlnocsServer.Services
             }
 
             string modelConfigurationJson = JsonSerializer.Serialize(model.Configuration);
-            return new ModelConfigurationMessage
+            return new ModelConfigurationReply
             {
-                ModelConfigurationJson = modelConfigurationJson
+                ModelConfigurationJson = modelConfigurationJson,
+                Performance = model.Performance
             };
         }
 
-        public override async Task<ModelEmptyMessage> UpdateModelConfiguration(ModelConfigurationMessage request, ServerCallContext context)
+        public override async Task<ModelsConfigurationsReply> GetModelsConfigurations(ModelEmptyMessage request, ServerCallContext context)
+        {
+            await UserService.AuthenticateUser(context);
+
+            List<Model> models = new();
+            try
+            {
+                models = ModelsRepository.Get().ToList();
+            }
+            catch (Exception exception)
+            {
+                ExceptionUtils.ThrowUnknownException(exception);
+            }
+
+            ModelsConfigurationsReply modelsConfigurationsReply = new() { };
+            foreach (Model model in models)
+            {
+                string modelConfigurationJson = JsonSerializer.Serialize(model.Configuration);
+                ModelConfigurationReply modelConfigurationReply = new ModelConfigurationReply
+                {
+                    ModelConfigurationJson = modelConfigurationJson,
+                    Performance = model.Performance
+                };
+                modelsConfigurationsReply.ModelsConfigurationsReplies.Add(modelConfigurationReply);
+            }
+
+            return modelsConfigurationsReply;
+        }
+
+        public override async Task<ModelEmptyMessage> UpdateModelConfiguration(ModelConfigurationRequest request, ServerCallContext context)
         {
             User sender = await UserService.AuthenticateUser(context);
 

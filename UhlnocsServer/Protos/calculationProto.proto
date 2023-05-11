@@ -6,8 +6,14 @@ package calculationProto;
 
 service CalculationServiceProto {
   rpc EnhanceLaunchConfiguration(LaunchConfigurationMessage) returns (LaunchConfigurationMessage);
+
   rpc StartLaunch (LaunchConfigurationMessage) returns (LaunchIdMessage);
-  rpc RecalculateModelPerformance(ModelIdMessage) returns (CalculationEmptyMessage);
+
+  rpc RecalculateModelPerformance (ModelIdMessage) returns (CalculationEmptyMessage);
+
+  rpc GetLaunchesInfos (LaunchesFiltersRequest) returns (LaunchesInfosReply);
+
+  rpc GetLaunchResult (LaunchIdMessage) returns (LaunchResultReply);
 }
 
 message CalculationEmptyMessage {
@@ -24,4 +30,18 @@ message LaunchIdMessage {
 
 message ModelIdMessage {
     string modelId = 1;
+}
+
+message LaunchesFiltersRequest {
+    string launchesFiltersJson = 1;
+}
+
+message LaunchesInfosReply {
+    int32 launchesTotal = 1;
+    int32 pagesTotal = 2;
+    string launchesInfosJson = 3;
+}
+
+message LaunchResultReply {
+    string LaunchResultJson = 1;
 }
