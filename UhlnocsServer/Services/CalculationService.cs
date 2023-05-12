@@ -178,18 +178,31 @@ namespace UhlnocsServer.Services
         {
             await UserService.AuthenticateUser(context);
 
+            // get launch and load all dependent entities
             Launch? launch = null;
             try
             {
-                // get launch and include all dependent entities
-                launch = LaunchesRepository.Get()
-                             //.Where(l => l.Id == request.LaunchId)
-                             .Include(l => l.Calculations)
-                             //.Include(l => l.Calculations.Select(c => c.Model))
-                             //.Include(l => l.Calculations.Select(c => c.ParametersSet))
-                             //.Include(l => l.Calculations.Select(c => c.CharacteristicsSet))
-                             .FirstOrDefault();
-
+                // looks awful but combination of Include and ThenInclude does not work
+                // usage of Select or Join seems even worse
+                // feel free to improve this code fragment
+                // things we want to do here are too specific to add methods to repository so we just create context
+                using (ApplicationDatabaseContext dbContext = new())  
+                {
+                    launch = dbContext.Launches.FirstOrDefault(l => l.Id == request.LaunchId);
+                    if (launch != null)
+                    {
+                        dbContext.Entry(launch).Collection(l => l.Calculations).Load();
+                        foreach (Calculation calculation in launch.Calculations)
+                        {
+                            if (calculation != null)
+                            {
+                                dbContext.Entry(calculation).Reference(c => c.Model).Load();
+                                dbContext.Entry(calculation).Reference(c => c.ParametersSet).Load();
+                                dbContext.Entry(calculation).Reference(c => c.CharacteristicsSet).Load();
+                            }
+                        }
+                    }
+                }
             }
             catch (Exception exception)
             {
@@ -226,7 +239,7 @@ namespace UhlnocsServer.Services
             Dictionary<string, ParameterResult> parametersResults = new();
             List<CharacteristicResult> characteristicsResults = new();
 
-            int iterationsAmount = launch.Calculations.Max(c => c.IterationIndex);
+            int iterationsAmount = launch.Calculations.Max(c => c.IterationIndex) + 1;
             List<Calculation> sortedCalculations = launch.Calculations.OrderBy(c => c.ModelId).ThenBy(c => c.IterationIndex).ToList();
 
             foreach (Calculation calculation in sortedCalculations)
@@ -316,6 +329,7 @@ namespace UhlnocsServer.Services
                             characteristicValues.Add(null);
                         }
                         CharacteristicResult characteristicResult = new(characteristicId, modelId, characteristicValues);
+                        characteristicsResults.Add(characteristicResult);
                     }
 
                     // add characteristic value at iteration to list of characteristic values
