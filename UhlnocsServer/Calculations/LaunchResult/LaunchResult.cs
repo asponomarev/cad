@@ -5,15 +5,15 @@ namespace UhlnocsServer.Calculations.LaunchResult
 {
     public class LaunchResult
     {
-        FullLaunchInfo FullLaunchInfo { get; set; }
+        public FullLaunchInfo FullLaunchInfo { get; set; }
 
-        OptimizationAlgorithmInfo OptimizationAlgorithmInfo { get; set; }
+        public OptimizationAlgorithmInfo OptimizationAlgorithmInfo { get; set; }
 
-        List<ModelInfo> ModelsInfos { get; set; }
+        public List<ModelInfo> ModelsInfos { get; set; }
 
-        List<ParameterResult> ParametersResults { get; set; }
+        public List<ParameterResult> ParametersResults { get; set; }
 
-        List<CharacteristicResult> CharacteristicsResults { get; set; }
+        public List<CharacteristicResult> CharacteristicsResults { get; set; }
 
         public LaunchResult(FullLaunchInfo fullLaunchInfo, OptimizationAlgorithmInfo optimizationAlgorithmInfo,
                             List<ModelInfo> modelsInfos, List<ParameterResult> parametersResults,

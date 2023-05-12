@@ -20,8 +20,6 @@ namespace UhlnocsServer.Calculations
 
         public List<CharacteristicWithModel> Characteristics { get; set; }
 
-        public List<string> UserCharacteristics { get; set; }
-
         public OptimizationAlgorithm OptimizationAlgorithm { get; set; }
 
         public bool RecalculateExisting { get; set; }
@@ -34,7 +32,6 @@ namespace UhlnocsServer.Calculations
                                    List<ParameterValue> parameters,
                                    List<string> userParameters,
                                    List<CharacteristicWithModel> characteristics,
-                                   List<string> userCharacteristics,
                                    OptimizationAlgorithm algorithm,
                                    bool recalculateExisting,
                                    double dssSearchAccuracy)
@@ -45,7 +42,6 @@ namespace UhlnocsServer.Calculations
             Parameters = parameters;
             UserParameters = userParameters;
             Characteristics = characteristics;
-            UserCharacteristics = userCharacteristics;
             OptimizationAlgorithm = algorithm;
             RecalculateExisting = recalculateExisting;
             DssSearchAccuracy = dssSearchAccuracy;
@@ -60,7 +56,6 @@ namespace UhlnocsServer.Calculations
             string user = configRoot.GetProperty(nameof(User)).GetString();
             List<string> userParameters = configRoot.GetProperty(nameof(UserParameters)).Deserialize<List<string>>();
             List<CharacteristicWithModel> characteristics = configRoot.GetProperty(nameof(Characteristics)).Deserialize<List<CharacteristicWithModel>>();
-            List<string> userCharacteristics = configRoot.GetProperty(nameof(UserCharacteristics)).Deserialize<List<string>>();
             bool recalculateExisting = configRoot.GetProperty(nameof(RecalculateExisting)).GetBoolean();
             double dssSearchAccuracy = configRoot.GetProperty(nameof(DssSearchAccuracy)).GetDouble();
 
@@ -71,7 +66,7 @@ namespace UhlnocsServer.Calculations
             OptimizationAlgorithm algorithm = OptimizationAlgorithm.FromJsonElement(algorithmElement);
 
             return new LaunchConfiguration(name, description, user, parameters, userParameters, 
-                                           characteristics, userCharacteristics, algorithm, recalculateExisting, dssSearchAccuracy);
+                                           characteristics, algorithm, recalculateExisting, dssSearchAccuracy);
         }
 
         public static string ToJsonString(LaunchConfiguration config)
@@ -84,7 +79,6 @@ namespace UhlnocsServer.Calculations
                 [nameof(Parameters)] = ParameterValue.ListToJsonArray(config.Parameters),
                 [nameof(UserParameters)] = JsonNode.Parse(JsonSerializer.Serialize(config.UserParameters)),
                 [nameof(Characteristics)] = JsonNode.Parse(JsonSerializer.Serialize(config.Characteristics)),
-                [nameof(UserCharacteristics)] = JsonNode.Parse(JsonSerializer.Serialize(config.UserCharacteristics)),
                 [nameof(OptimizationAlgorithm)] = OptimizationAlgorithm.ToJsonNode(config.OptimizationAlgorithm),
                 [nameof(RecalculateExisting)] = config.RecalculateExisting,
                 [nameof(DssSearchAccuracy)] = config.DssSearchAccuracy
