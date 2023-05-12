@@ -18,11 +18,12 @@ namespace UhlnocsServer.Services
         private readonly IRepository<Model> ModelsRepository;
         private readonly UserService UserService;
 
+        // take some values from properties files
         public readonly string TmpDirectory = PropertiesHolder.ModelSettings.GetValue<string>("tmpDirectory");
         public readonly string ModelsDirectory = PropertiesHolder.ModelSettings.GetValue<string>("modelsDirectory");
         public readonly int BufferSize = PropertiesHolder.ModelSettings.GetValue<int>("modelServiceBufferSize");
 
-        // TODO: add lock on assign to these two variables
+        // very useful dictionaries which help to resolve dependencies parameter/characteristic -> models
         public static volatile Dictionary<string, ParameterWithModels> ParametersWithModels = new();
         public static volatile Dictionary<string, CharacteristicWithModels> CharacteristicsWithModels = new();
 
@@ -46,6 +47,7 @@ namespace UhlnocsServer.Services
                 ExceptionUtils.ThrowInternalException(exception);
             }
 
+            // key is parameterId/characteristicId, value contains parameter name, value type and list of models
             Dictionary<string, ParameterWithModels> newParametersWithModels = new();
             Dictionary<string, CharacteristicWithModels> newCharacteristicsWithModels = new();
             foreach (Model model in models)
@@ -88,6 +90,7 @@ namespace UhlnocsServer.Services
         {
             await UserService.AuthenticateUser(context);
 
+            //just return content of dictionary
             string parametersWithModelsJson = JsonSerializer.Serialize(ParametersWithModels, PropertyBase.PropertySerializerOptions);
             return new ParametersWithModelsReply
             {
@@ -99,6 +102,7 @@ namespace UhlnocsServer.Services
         {
             await UserService.AuthenticateUser(context);
 
+            //just return content of dictionary
             string characteristicsWithModelsJson = JsonSerializer.Serialize(CharacteristicsWithModels, PropertyBase.PropertySerializerOptions);
             return new CharacteristicsWithModelsReply
             {
@@ -110,6 +114,7 @@ namespace UhlnocsServer.Services
         {
             await UserService.AuthenticateUser(context);
 
+            // get model configuration from request
             JsonDocument configurationJsonDocument = null;
             ModelConfiguration configuration = null;
             try
@@ -119,9 +124,11 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception) 
             {
+                // bad request because we get exception here only if something is wrong with configuration in request
                 ExceptionUtils.ThrowBadRequestException(exception);
             }
 
+            // create new model, add (insert) it to database
             Model model = new(configuration.Id, configurationJsonDocument);
             try
             {
@@ -131,6 +138,8 @@ namespace UhlnocsServer.Services
             {
                 ExceptionUtils.ThrowUnknownException(exception);
             }
+
+            // adjust content of dictionaries
             SetPropertiesInfoWithModels();
 
             return new ModelEmptyMessage
@@ -143,6 +152,7 @@ namespace UhlnocsServer.Services
         {
             await UserService.AuthenticateUser(context);
 
+            // trying to find model
             Model? model = null;
             try
             {
@@ -159,6 +169,7 @@ namespace UhlnocsServer.Services
                 throw new RpcException(new Status(StatusCode.NotFound, exceptionMessage));
             }
 
+            // return configuration and performance
             string modelConfigurationJson = JsonSerializer.Serialize(model.Configuration);
             return new ModelConfigurationReply
             {
@@ -181,6 +192,7 @@ namespace UhlnocsServer.Services
                 ExceptionUtils.ThrowUnknownException(exception);
             }
 
+            // return configs and performances of all known models
             ModelsConfigurationsReply modelsConfigurationsReply = new() { };
             foreach (Model model in models)
             {
@@ -200,6 +212,7 @@ namespace UhlnocsServer.Services
         {
             User sender = await UserService.AuthenticateUser(context);
 
+            // checking request
             JsonDocument newConfigurationJsonDocument = null;
             ModelConfiguration newConfiguration = null;
             try
@@ -212,6 +225,7 @@ namespace UhlnocsServer.Services
                 ExceptionUtils.ThrowBadRequestException(exception);
             }
 
+            // trying to find model
             Model? model = null;
             try
             {
@@ -227,6 +241,7 @@ namespace UhlnocsServer.Services
                 throw new RpcException(new Status(StatusCode.NotFound, exceptionMessage));
             }
 
+            // checking permissions
             ModelConfiguration oldConfiguration = ModelConfiguration.FromJsonDocument(model.Configuration);
             if (!oldConfiguration.ResponsibleUsers.Contains(sender.Id) && UserService.IsNotAdmin(sender.Id))
             {
@@ -234,6 +249,7 @@ namespace UhlnocsServer.Services
                 throw new RpcException(new Status(StatusCode.PermissionDenied, exceptionMessage));
             }
 
+            // updating model
             model.Configuration = newConfigurationJsonDocument;
             try
             {
@@ -243,6 +259,8 @@ namespace UhlnocsServer.Services
             {
                 ExceptionUtils.ThrowUnknownException(exception);
             }
+
+            // adjusting content of dictionaries
             SetPropertiesInfoWithModels();
 
             return new ModelEmptyMessage
@@ -254,12 +272,15 @@ namespace UhlnocsServer.Services
         public override async Task<ModelEmptyMessage> DeleteModel(ModelIdRequest request, ServerCallContext context)
         {
             User sender = await UserService.AuthenticateUser(context);
+
+            // we can archive models, but we don't want to delete them and info about them entirely
             if (UserService.IsNotAdmin(sender.Id))
             {
                 string exceptionMessage = "Model deletion is considered an unsafe operation and only admins may perform it";
                 throw new RpcException(new Status(StatusCode.PermissionDenied, exceptionMessage));
             }
 
+            // delete model configuration and model files
             try
             {
                 string modelDirectory = ModelsDirectory + request.ModelId;
@@ -275,13 +296,15 @@ namespace UhlnocsServer.Services
                 ExceptionUtils.ThrowUnknownException(exception);
             }
 
+            // adjusting content of dictionaries
+            SetPropertiesInfoWithModels();
+
             return new ModelEmptyMessage
             {
 
             };
         }
 
-        // this method was not tested properly and may contain bugs
         public override async Task<ModelEmptyMessage> UploadModelArchive(IAsyncStreamReader<ArchivePartRequest> requestStream,
                                                                          ServerCallContext context)
         {
@@ -292,8 +315,11 @@ namespace UhlnocsServer.Services
             byte[] buffer = new byte[BufferSize];
             FileStream fs = null;
             bool first = true;
+
+            // this method allows to upload archive with model files from client to server
             await foreach (ArchivePartRequest archivePart in requestStream.ReadAllAsync())
             {
+                // if it is first part of data create directory and stream
                 if (first)
                 {
                     first = false;
@@ -337,6 +363,7 @@ namespace UhlnocsServer.Services
                     fs = File.OpenWrite(modelZipFilePath);
                 }
 
+                // read data part
                 buffer = archivePart.Data.ToByteArray();
                 int bytesToRead = archivePart.BytesToRead;
                 try
@@ -389,6 +416,7 @@ namespace UhlnocsServer.Services
                 throw new RpcException(new Status(StatusCode.NotFound, exceptionMessage));
             }
 
+            // this method allows to download model archive from server to client
             string modelDirectory = ModelsDirectory + model.Id;
             string modelZipFilePath = TmpDirectory + model.Id + "-" + Guid.NewGuid().ToString();
             try

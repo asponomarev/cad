@@ -2,6 +2,7 @@
 {
     public static class PropertiesHolder
     {
+        // this path will be changed to GetCurrentDirectory() + \\Properties\\ in release version
         public const string PropertiesDirectory = "C:\\Projects\\Diploma\\Uhlnocs\\UhlnocsServer\\Properties\\";
 
         public static readonly IConfiguration LaunchSettings = new ConfigurationBuilder()

@@ -5,6 +5,7 @@ using UhlnocsServer.Users;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class describes launches table in database
     [Table("launches")]
     public class Launch
     {

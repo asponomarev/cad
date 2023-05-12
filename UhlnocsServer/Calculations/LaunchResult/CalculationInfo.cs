@@ -1,5 +1,6 @@
 ﻿namespace UhlnocsServer.Calculations.LaunchResult
 {
+    // list of this class objects is a part of ModelInfo and contains metainfo about calculation made by model
     public class CalculationInfo
     {
         public string CalculationId { get; set; }

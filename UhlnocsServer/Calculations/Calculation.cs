@@ -4,6 +4,7 @@ using UhlnocsServer.Models;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class describes calculations table in database
     [Table("calculations")]
     [Microsoft.EntityFrameworkCore.Index("LaunchId", IsUnique = false)]
     [Microsoft.EntityFrameworkCore.Index("ParametersHash", IsUnique = false)]
@@ -11,6 +12,7 @@ namespace UhlnocsServer.Calculations
     [Microsoft.EntityFrameworkCore.Index("ModelId", IsUnique = false)]
     public class Calculation
     {
+        // this id was added only because some key is needed for comfort of use of EFC
         [Column("id")]
         [Key]
         public string Id { get; set; }

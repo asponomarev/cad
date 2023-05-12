@@ -3,6 +3,7 @@ using UhlnocsServer.Models.Properties;
 
 namespace UhlnocsServer.Calculations.LaunchesInfos
 {
+    // this class is a reply body for method CalculationService.GetLaunchesInfos
     public class ShortLaunchInfo
     {
         public string LaunchId { get; set; }

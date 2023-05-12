@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class describes parameters table in database
     [Table("parameters_sets")]
     public class ParametersSet : IDisposable
     {

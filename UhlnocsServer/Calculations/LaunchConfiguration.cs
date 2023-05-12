@@ -6,6 +6,7 @@ using UhlnocsServer.Optimizations;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class contains info about launch and is also used in messages sent via gRpc
     public class LaunchConfiguration
     {
         public string Name { get; set; }

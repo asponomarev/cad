@@ -3,6 +3,7 @@ using UhlnocsServer.Models.Properties;
 
 namespace UhlnocsServer.Calculations.LaunchesInfos
 {
+    // this class is a request body for method CalculationService.GetLaunchesInfos
     public class LaunchesFilters
     {
         public string? LaunchNamePart { get; set; }

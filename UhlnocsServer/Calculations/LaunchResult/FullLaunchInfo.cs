@@ -2,6 +2,7 @@
 
 namespace UhlnocsServer.Calculations.LaunchResult
 {
+    // this class is a part of LaunchResult object and contains metainfo about launch
     public class FullLaunchInfo
     {
         public string Id { get; set; }

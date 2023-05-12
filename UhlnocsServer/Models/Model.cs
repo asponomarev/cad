@@ -5,6 +5,7 @@ using UhlnocsServer.Calculations;
 
 namespace UhlnocsServer.Models
 {
+    // this class describes models table in database
     [Table("models")]
     public class Model : IDisposable
     {

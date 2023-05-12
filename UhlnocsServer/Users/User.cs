@@ -4,6 +4,7 @@ using UhlnocsServer.Calculations;
 
 namespace UhlnocsServer.Users
 {
+    // this class describes users table in database
     [Table("users")]
     public class User
     {

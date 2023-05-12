@@ -6,6 +6,7 @@ using UhlnocsServer.Models.Properties.Parameters.Infos;
 
 namespace UhlnocsServer.Models
 {
+    // this class contains info about model and is also used in messages sent via gRpc
     public class ModelConfiguration
     {
         public string Id { get; set; }
