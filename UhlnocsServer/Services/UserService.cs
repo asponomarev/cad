@@ -106,6 +106,7 @@ namespace UhlnocsServer.Services
 
         public override async Task<UserEmptyMessage> DeleteUser(UserIdMessage request, ServerCallContext context)
         {
+            // we don't want to delete data about users entirely because it is bad for data integrity
             User sender = await AuthenticateUser(context);
             if (IsNotAdmin(sender.Id)) 
             {

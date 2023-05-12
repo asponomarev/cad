@@ -16,12 +16,14 @@ namespace UhlnocsServer
 
             builder.Services.AddGrpc();
 
+            // configure services DI
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<ModelService>();
             builder.Services.AddSingleton<CalculationService>();
             builder.Services.AddSingleton<CalculationsOptimizer>();
             builder.Services.AddSingleton<IConfigurationEnhancer, ConfigurationEnhancer>();
 
+            // configure repositories DI
             builder.Services.AddTransient<IRepository<User>, Repository<User>>();
             builder.Services.AddTransient<IRepository<Model>, Repository<Model>>();
             builder.Services.AddTransient<IRepository<Launch>, Repository<Launch>>();
@@ -31,6 +33,7 @@ namespace UhlnocsServer
 
             var app = builder.Build();
 
+            // configure gRpc services
             app.MapGrpcService<UserService>();
             app.MapGrpcService<ModelService>();
             app.MapGrpcService<CalculationService>();

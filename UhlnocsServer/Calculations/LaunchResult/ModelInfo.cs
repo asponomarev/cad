@@ -2,6 +2,7 @@
 
 namespace UhlnocsServer.Calculations.LaunchResult
 {
+    // list of this class objects is a part of LaunchResult and contains info about model used in launch
     public class ModelInfo
     {
         public string ModelId { get; set; }

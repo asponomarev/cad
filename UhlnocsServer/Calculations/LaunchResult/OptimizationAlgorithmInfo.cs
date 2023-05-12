@@ -2,6 +2,7 @@
 
 namespace UhlnocsServer.Calculations.LaunchResult
 {
+    // this class is a part of LaunchResult object and contains info about optimization algorithm
     public class OptimizationAlgorithmInfo
     {
         public AlgorithmType AlgorithmType { get; set; }

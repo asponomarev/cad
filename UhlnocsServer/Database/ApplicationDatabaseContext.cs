@@ -32,6 +32,7 @@ namespace UhlnocsServer.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // configuring dependencies between entities in db and conversion of enum fields in classes to strings in db
             modelBuilder.Entity<Launch>()
                 .HasOne(l => l.User)
                 .WithMany(u => u.Launches)

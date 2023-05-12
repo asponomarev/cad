@@ -1,17 +1,16 @@
 ﻿using DSS;
 using Grpc.Core;
 using System.Data.Entity;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using UhlnocsServer.Calculations;
 using UhlnocsServer.Calculations.LaunchesInfos;
 using UhlnocsServer.Calculations.LaunchResult;
 using UhlnocsServer.Database;
 using UhlnocsServer.Models;
-using UhlnocsServer.Models.Properties;
 using UhlnocsServer.Models.Properties.Characteristics;
 using UhlnocsServer.Models.Properties.Parameters;
 using UhlnocsServer.Optimizations;
+using UhlnocsServer.Users;
 using UhlnocsServer.Utils;
 
 namespace UhlnocsServer.Services
@@ -40,8 +39,9 @@ namespace UhlnocsServer.Services
 
         public override async Task<CalculationEmptyMessage> RecalculateModelPerformance(ModelIdMessage request, ServerCallContext context)
         {
-            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for model
+            await UserService.AuthenticateUser(context);
 
+            // we start performance recalculation task but don't wait for it because it can take a lot of time in theory
             _ = Optimizer.RecalculateModelPerformance(request.ModelId);
 
             return new CalculationEmptyMessage
@@ -53,8 +53,9 @@ namespace UhlnocsServer.Services
         
         public override async Task<LaunchConfigurationMessage> EnhanceLaunchConfiguration(LaunchConfigurationMessage request, ServerCallContext context)
         {
-            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for launch
+            User sender = await UserService.AuthenticateUser(context);
 
+            // get launch configuration from request
             LaunchConfiguration configuration = null;
             try
             {
@@ -63,9 +64,18 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
+                // bad request because we get exception here only if something is wrong with configuration in request
                 ExceptionUtils.ThrowBadRequestException(exception);
             }
 
+            // check permissions
+            if (UserService.IsNotAdmin(sender.Id) && sender.Id != configuration.User)
+            {
+                string message = $"User {sender.Id} is not allowed to enhance launch as user {configuration.User}";
+                throw new RpcException(new Status(StatusCode.PermissionDenied, message));
+            }
+
+            // wait for enhanced configuration and return it
             LaunchConfiguration enhancedConfiguration = await ConfigurationEnhancer.GetModifiedLaunchConfiguration(configuration);
 
             string configJsonString = LaunchConfiguration.ToJsonString(enhancedConfiguration);
@@ -78,8 +88,9 @@ namespace UhlnocsServer.Services
 
         public override async Task<LaunchIdMessage> StartLaunch(LaunchConfigurationMessage request, ServerCallContext context)
         {
-            await UserService.AuthenticateUser(context);  // todo: add check that user is responsible for launch
+            User sender = await UserService.AuthenticateUser(context);
 
+            // get launch configuration from request
             LaunchConfiguration configuration = null;
             try
             {
@@ -88,9 +99,18 @@ namespace UhlnocsServer.Services
             }
             catch (Exception exception)
             {
+                // bad request because we get exception here only if something is wrong with configuration in request
                 ExceptionUtils.ThrowBadRequestException(exception);
             }
 
+            // check permissions
+            if (UserService.IsNotAdmin(sender.Id) && sender.Id != configuration.User)
+            {
+                string message = $"User {sender.Id} is not allowed to start launch as user {configuration.User}";
+                throw new RpcException(new Status(StatusCode.PermissionDenied, message));
+            }
+
+            // start launch task but don't wait for it because it can take a lot of time
             string launchId = Guid.NewGuid().ToString();
             _ = Optimizer.OptimizeLaunch(launchId, configuration);
 
@@ -182,8 +202,8 @@ namespace UhlnocsServer.Services
             Launch? launch = null;
             try
             {
-                // looks awful but combination of Include and ThenInclude does not work
-                // usage of Select or Join seems even worse
+                // combination of Include and ThenInclude does not work
+                // usage of Select or Join works but looks worse than this
                 // feel free to improve this code fragment
                 // things we want to do here are too specific to add methods to repository so we just create context
                 using (ApplicationDatabaseContext dbContext = new())  
@@ -191,15 +211,13 @@ namespace UhlnocsServer.Services
                     launch = dbContext.Launches.FirstOrDefault(l => l.Id == request.LaunchId);
                     if (launch != null)
                     {
-                        dbContext.Entry(launch).Collection(l => l.Calculations).Load();
+                        dbContext.Entry(launch).Collection(l => l.Calculations).Load();  // using collection navigation
                         foreach (Calculation calculation in launch.Calculations)
                         {
-                            if (calculation != null)
-                            {
-                                dbContext.Entry(calculation).Reference(c => c.Model).Load();
-                                dbContext.Entry(calculation).Reference(c => c.ParametersSet).Load();
-                                dbContext.Entry(calculation).Reference(c => c.CharacteristicsSet).Load();
-                            }
+                            // using single reference navigation
+                            dbContext.Entry(calculation).Reference(c => c.Model).Load();
+                            dbContext.Entry(calculation).Reference(c => c.ParametersSet).Load();
+                            dbContext.Entry(calculation).Reference(c => c.CharacteristicsSet).Load();
                         }
                     }
                 }
@@ -239,7 +257,7 @@ namespace UhlnocsServer.Services
             Dictionary<string, ParameterResult> parametersResults = new();
             List<CharacteristicResult> characteristicsResults = new();
 
-            int iterationsAmount = launch.Calculations.Max(c => c.IterationIndex) + 1;
+            int iterationsAmount = launch.Calculations.Max(c => c.IterationIndex) + 1;  // +1 because iterations are numbered from 0
             List<Calculation> sortedCalculations = launch.Calculations.OrderBy(c => c.ModelId).ThenBy(c => c.IterationIndex).ToList();
 
             foreach (Calculation calculation in sortedCalculations)
