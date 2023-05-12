@@ -4,44 +4,57 @@ option csharp_namespace = "UhlnocsServer";
 
 package calculationProto;
 
+// Calculation service provides methods for starting launches, getting information about them and their results.
 service CalculationServiceProto {
+  // This method allows to enhance user launch configuration using Decision Support System (DSS) module 
   rpc EnhanceLaunchConfiguration(LaunchConfigurationMessage) returns (LaunchConfigurationMessage);
 
+  // This method allows to start launch.
   rpc StartLaunch (LaunchConfigurationMessage) returns (LaunchIdMessage);
 
+  // This method allows to recalculate model performance. This method is automatically called by CAD once a day.
   rpc RecalculateModelPerformance (ModelIdMessage) returns (CalculationEmptyMessage);
 
+  // This method allows to get metainformation about launches that meet the conditions set by filters.
   rpc GetLaunchesInfos (LaunchesFiltersRequest) returns (LaunchesInfosReply);
 
+  // This method allows to get results of specified launch.
   rpc GetLaunchResult (LaunchIdMessage) returns (LaunchResultReply);
 }
 
+// This message is used when request or reply has empty body.
 message CalculationEmptyMessage {
 
 }
 
+// This message contains launch configuration (see class LaunchConfiguration) and is used in several methods.
 message LaunchConfigurationMessage {
     string launchConfigurationJson = 1;
 }
 
+// This message contains launch id and is used in several methods.
 message LaunchIdMessage {
     string launchId = 1;
 }
 
+// This message contains model id and is a request body for method used for recalculating model performance.
 message ModelIdMessage {
     string modelId = 1;
 }
 
+// This message contains launches filters (see class LaunchesFilters) and is a request body for method for getting metainfo about launches.
 message LaunchesFiltersRequest {
     string launchesFiltersJson = 1;
 }
 
+// This message contains launches metainfo (see class ShortLaunchInfo) and is a reply body for method for getting metainfo about launches.
 message LaunchesInfosReply {
     int32 launchesTotal = 1;
     int32 pagesTotal = 2;
     string launchesInfosJson = 3;
 }
 
+// This message contains launch results (see classes LaunchResult, FullLaunchInfo, ModelInfo, CalculationInfo, ParameterResult, CharacteristicResult) and is a reply body for method for getting launch results.
 message LaunchResultReply {
     string LaunchResultJson = 1;
 }

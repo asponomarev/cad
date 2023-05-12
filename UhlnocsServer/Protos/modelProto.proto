@@ -4,62 +4,81 @@ option csharp_namespace = "UhlnocsServer";
 
 package modelProto;
 
+// Model Service provides methods for adding, updating and getting information about models as well as getting information about NoC parameters and characteristics
 service ModelServiceProto {
+  // This method allows to add new model configuration to CAD.
   rpc AddModelConfiguration (ModelConfigurationRequest) returns (ModelEmptyMessage);
 
+  // This method allows to update existing model configuration.
   rpc UpdateModelConfiguration (ModelConfigurationRequest) returns (ModelEmptyMessage);
 
+  // This method allows to delete model configuration and files. Only admins may perform it. This method was created for testing and development and is not recommended for use in production.
   rpc DeleteModel (ModelIdRequest) returns (ModelEmptyMessage);
 
+  // This methos allows to get model configuration of existing model.
   rpc GetModelConfiguration (ModelIdRequest) returns (ModelConfigurationReply);
 
+  // This method allows to get configurations of all existing models.
   rpc GetModelsConfigurations (ModelEmptyMessage) returns (ModelsConfigurationsReply);
 
+  // This method allows to upload archive with model files to server.
   rpc UploadModelArchive (stream ArchivePartRequest) returns (ModelEmptyMessage);
 
+  // This method allows to download archive with model files from server.
   rpc DownloadModelArchive (ModelIdRequest) returns (stream ArchivePartReply);
 
+  // This method allows to get information about all NoC parameters known by CAD.
   rpc GetParametersWithModels (ModelEmptyMessage) returns (ParametersWithModelsReply);
 
+  // This method allows to get information about all NoC characteristics known by CAD.
   rpc GetCharacteristicsWithModels (ModelEmptyMessage) returns (CharacteristicsWithModelsReply);
 }
 
+// This message is used when request or reply has empty body.
 message ModelEmptyMessage {
 
 }
 
+// This message contains model id and is used in several methods.
 message ModelIdRequest {
 	string modelId = 1;
 }
 
+// This message contains model configuration (see class ModelConfiguration) and is used in several methods.
 message ModelConfigurationRequest {
 	string modelConfigurationJson = 1;
 }
 
+// This message contains model configuration (see class ModelConfiguration) and model performance and is a reply body for method for getting model configuration.
 message ModelConfigurationReply {
 	string modelConfigurationJson = 1;
 	double performance = 2;
 }
 
+// This message contains information about model configurations and is a reply body for method for getting all models configurations.
 message ModelsConfigurationsReply {
 	repeated ModelConfigurationReply modelsConfigurationsReplies = 1;
 }
 
+// This message contains part of model archive data and is used in method for downloading model files.
 message ArchivePartReply {
 	bytes data = 1;
 	int32 bytesToRead = 2;
 }
 
+// This message contains part of model archive data and is used in method for uploading model files.
 message ArchivePartRequest {
 	bytes data = 1;
 	int32 bytesToRead = 2;
 	string modelId = 3;
 }
 
+// This message contains info about all parameters as Dictionary<string, ParameterWithModels> (see class ParameterWithModels)
 message ParametersWithModelsReply {
 	string parametersWithModelsJson = 1;
 }
 
+// This message contains info about all characteristics as Dictionary<string, characteristicsWithModels> (see class characteristicsWithModels)
 message CharacteristicsWithModelsReply {
 	string characteristicsWithModelsJson = 1;
 }

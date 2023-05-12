@@ -4,41 +4,55 @@ option csharp_namespace = "UhlnocsServer";
 
 package userProto;
 
+// User Service provides methods for signing up, signing in, updating and getting data about CAD users.
 service UserServiceProto {
+  // This method allows user to sign up.
   rpc SignUpUser (UserFullDataMessage) returns (UserEmptyMessage);
 
+  // This method allows user to sign in.
   rpc SignInUser (UserSignInRequest) returns (UserFullDataMessage);
 
+  // This method allows to delete user info. Only admins of CAD may perform this operation. This method was created for testing and development and is not recommended for use in production.
   rpc DeleteUser (UserIdMessage) returns (UserEmptyMessage);
 
+  // This method allows user to update information about him. Id can not be changed by it. If you want to change your id, contact admins.
   rpc UpdateUser (UserFullDataMessage) returns (UserEmptyMessage);
 
+  // This method allows to get all information about user (including confidential info). Users may not use this method to get info about other users.
   rpc GetUserFullData (UserIdMessage) returns (UserFullDataMessage);
 
+  // This method allows to get non-confidential information about user.
   rpc GetUserOpenData (UserIdMessage) returns (UserOpenDataReply);
 
+  // This method allows to get non-confidential information about certain users.
   rpc GetUsersOpenData (UsersIdsRequest) returns (UsersOpenDataReply);
 
+  // This method allows to get non-confidential information about all users.
   rpc GetAllUsersOpenData (UserEmptyMessage) returns (UsersOpenDataReply);
 }
 
+// This message is used when request or reply has empty body.
 message UserEmptyMessage {
 
 }
 
+// This message contains used id and password and is used as request body in sign in method.
 message UserSignInRequest {
 	string id = 1;
 	string password = 2;
 }
 
+// This message contains user id and is used in several methods.
 message UserIdMessage {
 	string id = 1;
 }
 
+// This message contains list of users ids and is used for getting info about certain users.
 message UsersIdsRequest {
 	repeated UserIdMessage ids = 1;
 }
 
+// This message contains all user info (including confidential data) and is used in several methods.
 message UserFullDataMessage {
 	string id = 1;
 	string email = 2;
@@ -48,6 +62,7 @@ message UserFullDataMessage {
 	string description = 6;
 }
 
+// This message contains non-confidential user and is a reply body in method for getting user info.
 message UserOpenDataReply {
 	string id = 1;
 	string email = 2;
@@ -56,6 +71,7 @@ message UserOpenDataReply {
 	string description = 5;
 }
 
+// This message contains list of non-confidential user information messages and is used in several methods.
 message UsersOpenDataReply {
 	repeated UserOpenDataReply users = 1;
 }
