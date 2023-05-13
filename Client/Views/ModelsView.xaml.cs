@@ -28,7 +28,7 @@ namespace Client.Views
         public ModelsView()
         {
             InitializeComponent();
-            DataContext = new ViewModels.ModelsViewModel();
+            /*DataContext = new ViewModels.ModelsViewModel();*/
             //ClientCharacteristicsGrid.ItemsSource = _modelsModel.Characteristics;
 
             /*Orders.Add(new Order { OrderNumber = 1, CustomerName = "John Doe", OrderDate = DateTime.Today });

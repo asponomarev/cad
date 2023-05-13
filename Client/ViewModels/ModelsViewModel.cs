@@ -30,24 +30,10 @@ namespace Client.ViewModels
 
         private void GetCharacteristicsMethod()
         {
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel.Characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
+            _modelsModel._options.Add("true");
+            _modelsModel._options.Add("false");
+            _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
+            _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
             /*try
             {
                 var result = await _modelClient.DeleteModelAsync(new ModelIdRequest() { ModelId = "testId" });
