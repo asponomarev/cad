@@ -28,10 +28,10 @@
                 <TextBox x:Name="ModelOkExitCodeTextBox" Text="{Binding _modelsModel._modelConfiguration._modelOkExitCode}" TextWrapping="Wrap" Width="50" Margin="135,90,0,100" HorizontalAlignment="Left"  Height="20" FontSize="10" />
 
                 <Label x:Name="ModelArgumentsLabel" Content="model arguments fstring" HorizontalContentAlignment="Center" Margin="10,160,428,25" Height="25" FontSize="10" RenderTransformOrigin="0.064,0.682" Width="210"/>
-                <TextBox x:Name="ModelArgumentsTextBox" Text="{Binding _modelsModel._modelConfiguration._modelArguments}" TextWrapping="Wrap" Width="210" Margin="10,180,0,10" HorizontalAlignment="Left"  Height="20" FontSize="10" />
+                <TextBox x:Name="ModelArgumentsTextBox" Text="{Binding _modelsModel._modelConfiguration._modelArgumentsFormatString}" TextWrapping="Wrap" Width="210" Margin="10,180,0,10" HorizontalAlignment="Left"  Height="20" FontSize="10" />
 
                 <Label x:Name="PreparerFilePathLabel" Content="preparer file path" HorizontalContentAlignment="Center" Margin="504,45,181,140" Height="25" FontSize="10" Width="160" Grid.ColumnSpan="2"/>
-                <TextBox x:Name="PreparerFilePathTextBox" Text="{Binding _modelsModel._modelConfiguration._prepareFilePath}" TextWrapping="Wrap" Width="605" Margin="230,66,0,124" HorizontalAlignment="Left"  Height="20" FontSize="10" Grid.ColumnSpan="2" />
+                <TextBox x:Name="PreparerFilePathTextBox" Text="{Binding _modelsModel._modelConfiguration._preparerFilePath}" TextWrapping="Wrap" Width="605" Margin="230,66,0,124" HorizontalAlignment="Left"  Height="20" FontSize="10" Grid.ColumnSpan="2" />
 
                 <Label x:Name="CollectorFilePathLabel" Content="collector file path" HorizontalContentAlignment="Center" Margin="484,86,161,99" Height="25" FontSize="10" Width="200" Grid.ColumnSpan="2" RenderTransformOrigin="0.495,1.136"/>
                 <TextBox x:Name="CollectorFilePathTextBox" Text="{Binding _modelsModel._modelConfiguration._collectorFilePath}" TextWrapping="Wrap" Width="605" Margin="230,105,0,85" HorizontalAlignment="Left"  Height="20" FontSize="10" Grid.ColumnSpan="2" />
@@ -46,7 +46,7 @@
                 <ComboBox x:Name="CollectFromStdoutCBox" ItemsSource="{Binding _modelsModel._options}" SelectedItem="{Binding _modelsModel._modelConfiguration._collectFromStdout}" HorizontalAlignment="Left" Margin="10,66,0,0" VerticalAlignment="Top" Width="80" Height="20" MaxDropDownHeight="2">
                 </ComboBox>
 
-                <TextBox x:Name="PerfomanceTextBox" Text="{Binding _modelsModel._modelConfiguration._perfomance}" HorizontalAlignment="Left" Margin="101,66,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Height="20" FontSize="10"/>
+                <TextBox x:Name="PerfomanceTextBox" Text="{Binding _modelsModel._modelConfiguration._performance}" HorizontalAlignment="Left" Margin="101,66,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Height="20" FontSize="10"/>
                 <Label x:Name="PerfomanceLabel" Content="perfomance" HorizontalAlignment="Left" HorizontalContentAlignment="Center" Margin="101,45,0,0" VerticalAlignment="Top" Height="25" FontSize="10" Width="120"/>
             </Grid>
         </Border>
