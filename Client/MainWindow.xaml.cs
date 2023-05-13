@@ -35,6 +35,11 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
+            var screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
+            var screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+            this.Width = screenWidth;
+            this.Height = screenHeight;
+
             _configuration = CreateConfiguration();
             _channel = CreateGrpcChannel();
             _modelClient = new ModelServiceProto.ModelServiceProtoClient(_channel);
@@ -50,17 +55,17 @@ namespace Client
         private GrpcChannel CreateGrpcChannel() 
             => GrpcChannel.ForAddress(_configuration.GetSection("ServerEndpoint").Value);
 
-        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        private void Users_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new UserViewModel(_userServiceClient, _modelClient);
         }
 
-        private void ParametersButton_Click(object sender, RoutedEventArgs e)
+        private void Parameters_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new ParametersViewModel();
         }
 
-        private void CharacteristicsButton_Click(object sender, RoutedEventArgs e)
+        private void Characteristics_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new CharacteristicsViewModel();
         }
