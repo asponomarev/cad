@@ -7,7 +7,7 @@
         xmlns:viewmodels="clr-namespace:Client.ViewModels"
         xmlns:views="clr-namespace:Client.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="840" Width="1024">
+        Title="MainWindow" Height="820" Width="1024">
     <Window.Resources>
         <DataTemplate x:Name="userViewTemplate" DataType="{x:Type viewmodels:UserViewModel}">
             <views:UserView DataContext="{Binding}"/>
@@ -28,7 +28,6 @@
             <MenuItem Header="Launches"></MenuItem>
             <MenuItem Header="Compare"></MenuItem>
         </Menu>
-        <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,47,0,0" VerticalAlignment="Top" Width="1024" Height="768"/>
-
+        <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,25,0,0" VerticalAlignment="Top" Width="1024" Height="768"/>
     </Grid>
 </Window>
