@@ -38,20 +38,13 @@
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="569,181,0,0" TextWrapping="Wrap" Text="Value Type" VerticalAlignment="Top" Width="88"/>
         <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="580,206,-49,540"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="800,181,0,0" TextWrapping="Wrap" Text="Model" VerticalAlignment="Top" Width="66"/>
-        <ListView Name="paramList" Margin="0,262,0,0" >
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn  Width="256">Id</GridViewColumn>
-                    <GridViewColumn  Width="256">Name</GridViewColumn>
-                    <GridViewColumn  Width="256">Value Type</GridViewColumn>
-                    <GridViewColumn  Width="256">Model</GridViewColumn>
-                </GridView>
-            </ListView.View>
-            <ListView.Resources>
-                <col:ArrayList x:Key="params">
-                    
-                </col:ArrayList>
-            </ListView.Resources>
-        </ListView>
+        <DataGrid x:Name="paramsList" ItemsSource="{Binding _paramList}" AutoGenerateColumns="False" Margin="0,279,0,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Id" Binding="{Binding _id}" Width="*"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding _name}" Width="*" />
+                <DataGridTextColumn Header="Value Type" Binding="{Binding _valueType}" Width="*" />
+                <DataGridTextColumn Header="Model" Binding="{Binding _model}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
 </UserControl>

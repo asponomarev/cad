@@ -2,6 +2,7 @@
 using Google.Protobuf.Compiler;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,33 +35,20 @@ namespace Client.Views
             this.model = model;
         }
     }
-    public class ItemHandler
-    {
-        public ItemHandler()
-        {
-            Items = new List<Parameters>();
-        }
-        public List<Parameters> Items { get; private set; }
-        public void Add(Parameters item)
-        {
-            Items.Add(item);
-        }
-    }
+    
     public partial class ParametersView : UserControl
     {
-        private readonly ItemHandler _itemHandler;
         public ParametersView()
         {
             InitializeComponent();
-            _itemHandler = new ItemHandler();
-            _itemHandler.Add(new Parameters(1, "param_name", "int", "booksim"));
-            _itemHandler.Add(new Parameters(2, "param_name2", "bool", "newxim"));
-            _itemHandler.Add(new Parameters(3, "param_name3", "double", "topaz"));
-        }
-
-        public List<Parameters> Items
-        {
-            get { return _itemHandler.Items; }
+            List<Parameters> paramlist = new List<Parameters>()
+            {
+                new Parameters(1, "param_name", "int", "booksim"),
+                new Parameters(2, "param_name2", "bool", "newxim"),
+                new Parameters(3, "param_name3", "double", "topaz"),
+                new Parameters(4, "param_name4", "int", "dec9"),
+                new Parameters(5, "param_name5", "bool", "gpnocsim")
+            };
         }
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
