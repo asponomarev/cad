@@ -66,8 +66,9 @@
             <Grid Width="845" Height="210">
 
 
-                <Button x:Name="AddParameterButton" Content="Add Parameter" HorizontalAlignment="Left" Margin="755,81,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" RenderTransformOrigin="0.125,0.586" Grid.ColumnSpan="2"/>
-                <DataGrid x:Name="DGCharacteristics_Copy" ItemsSource="{Binding _modelsModel._modelConfiguration._parameters}" AutoGenerateColumns="False" Width="750" Margin="0,0,95,0" Height="210">
+                <Button x:Name="AddParameterButton" Command="{Binding AddEmptyRowCommand}" Content="     Add&#xA;Parameter"
+                        HorizontalAlignment="Left" Margin="755,81,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" RenderTransformOrigin="0.125,0.586" Grid.ColumnSpan="2" Click="AddParameterButton_Click"/>
+                <DataGrid x:Name="DGParameters" ItemsSource="{Binding _modelsModel._modelConfiguration._parameters}" AutoGenerateColumns="False" Width="750" Margin="0,0,95,0" Height="210">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="value type" Binding="{Binding _valueType}" Width="*" />
                         <DataGridTextColumn Header="id" Binding="{Binding _id}" Width="*" />
@@ -106,9 +107,10 @@
 
         <Border BorderBrush="Black" BorderThickness="1" Margin="0,673,179,39">
             <Grid Margin="0,-1,0,-1">
-                <Button x:Name="UpdateModelButton" Content="   Save Model&#xD;&#xA;  Configuration" HorizontalAlignment="Left" Margin="190,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
-                <Button x:Name="UploadModelArchiveButton" Content="Upload Model&#xD;&#xA;     Archive" HorizontalAlignment="Left" Margin="360,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
-                <Button x:Name="DownloadModelArchiveButton" Content="Download Model&#xD;&#xA;        Archive" HorizontalAlignment="Left" Margin="530,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
+                <Button x:Name="UpdateModelButton" Content="   Save Model&#xD;&#xA;  Configuration" HorizontalAlignment="Left" Margin="280,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
+                <Button x:Name="UploadModelArchiveButton" Content="Upload Model&#xD;&#xA;     Archive" HorizontalAlignment="Left" Margin="455,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
+                <Button x:Name="DownloadModelArchiveButton" Content="Download Model&#xD;&#xA;        Archive" HorizontalAlignment="Left" Margin="630,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
+                <Button x:Name="RefreshModelsDataButton" Content="Refresh Models &#xD;&#xA;        Data" HorizontalAlignment="Left" Margin="110,0,0,0" VerticalAlignment="Center" Width="90" Height="50" FontSize="10"/>
 
             </Grid>
         </Border>
