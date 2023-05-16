@@ -5,14 +5,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Client.Views"
-             xmlns:col="clr-namespace:System.Collections;assembly=mscorlib"
+             xmlns:col="clr-namespace:System.Collections;assembly=mscorlib" 
+             xmlns:models="clr-namespace:Client.Models"
              mc:Ignorable="d" 
              d:DesignHeight="768" d:DesignWidth="1204">
     <Grid>
 
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="25,46,740,700"></TextBox>
+        <TextBox Width="200" Height="22" Margin="25,46,740,700"></TextBox>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="109,21,0,0" TextWrapping="Wrap" Text="Characteristic Id" VerticalAlignment="Top" Width="100"/>
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="225,46,494,700"/>
+        <TextBox Width="200" Height="22" Margin="225,46,494,700"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="357,21,0,0" TextWrapping="Wrap" Text="Name" VerticalAlignment="Top" Width="44"/>
         <ComboBox Width="200" Height="22" Margin="352,45,172,699">
             <TextBlock>Int</TextBlock>
@@ -30,20 +31,20 @@
         <Button Content="Применить фильтры" Width="130" Height="25" Margin="-20,-550,0,0"></Button>
         <Line Stroke="Gray" StrokeThickness="1" X1="0" Y1="150" X2="1204" Y2="150"></Line>
         
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="25,206,740,540"/>
+        <TextBox Width="200" Height="22" Margin="25,206,740,540"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="109,181,740,0" TextWrapping="Wrap" Text="Characteristic Id" VerticalAlignment="Top" Width="100"/>
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="225,206,494,540"/>
+        <TextBox Width="200" Height="22" Margin="225,206,494,540"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="357,181,0,0" TextWrapping="Wrap" Text="Name" VerticalAlignment="Top" Width="44"/>
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="352,206,172,540"/>
+        <TextBox Width="200" Height="22" Margin="352,206,172,540"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="569,181,0,0" TextWrapping="Wrap" Text="Value Type" VerticalAlignment="Top" Width="88"/>
-        <TextBox Width="200" Height="22"  TextChanged="TextBox_TextChanged" Margin="580,206,-49,540"/>
+        <TextBox Width="200" Height="22" Margin="580,206,-49,540"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="800,181,0,0" TextWrapping="Wrap" Text="Model" VerticalAlignment="Top" Width="66"/>
-        <DataGrid x:Name="paramsList" ItemsSource="{Binding _paramList}" AutoGenerateColumns="False" Margin="0,279,0,0">
+        <DataGrid x:Name="characList" ItemsSource="{Binding _characList}" AutoGenerateColumns="False" Margin="0,279,0,0">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Id" Binding="{Binding _id}" Width="*"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding _name}" Width="*" />
-                <DataGridTextColumn Header="Value Type" Binding="{Binding _valueType}" Width="*" />
-                <DataGridTextColumn Header="Model" Binding="{Binding _model}" Width="*" />
+                <DataGridTextColumn Header="Id" Binding="{Binding id}" Width="*"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding name}" Width="*" />
+                <DataGridTextColumn Header="Value Type" Binding="{Binding value}" Width="*" />
+                <DataGridTextColumn Header="Model" Binding="{Binding model}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
