@@ -61,24 +61,21 @@ namespace Client
         private GrpcChannel CreateGrpcChannel() 
             => GrpcChannel.ForAddress(_configuration.GetSection("ServerEndpoint").Value);
 
-        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        
+
+        private void Users_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new UserViewModel(_userServiceClient, _modelClient);
+            DataContext = new UserViewModel();
         }
 
-        private void ParametersButton_Click(object sender, RoutedEventArgs e)
+        private void Sign_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new ParametersViewModel();
+            DataContext = new SignViewModel();
         }
 
-        private void CharacteristicsButton_Click(object sender, RoutedEventArgs e)
+        private void LaunchResult_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new CharacteristicsViewModel();
-        }
-
-        private void ModelsButton_Click(object sender, RoutedEventArgs e)
-        {
-            DataContext = _modelsViewModel;
+            DataContext = new LaunchResultViewModel();
         }
     }
 }

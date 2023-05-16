@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="Client.Views.SignView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Client.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="1024" d:DesignWidth="767">
+    <Grid>
+        <Label Content="Sign in" HorizontalAlignment="Left" Margin="134,75,0,0" VerticalAlignment="Top" Height="27" Width="76"/>
+        <Label Content="Sign up" HorizontalAlignment="Left" Margin="606,75,0,0" VerticalAlignment="Top" Height="29" Width="64"/>
+        <Label Content="Email" HorizontalAlignment="Left" Margin="116,144,0,0" VerticalAlignment="Top" Width="57"/>
+        <Label Content="Password" HorizontalAlignment="Left" Margin="115,218,0,0" VerticalAlignment="Top" Height="27" Width="95"/>
+        <TextBox HorizontalAlignment="Left" Margin="102,175,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <PasswordBox HorizontalAlignment="Left" Margin="102,250,0,0" VerticalAlignment="Top" Width="120"/>
+        <Button Content="Sign in" HorizontalAlignment="Left" Margin="134,340,0,0" VerticalAlignment="Top" Height="33" Width="58"/>
+        <Label Content="Nickname" HorizontalAlignment="Left" Margin="557,114,0,0" VerticalAlignment="Top"/>
+        <Label Content="Email" HorizontalAlignment="Left" Margin="557,193,0,0" VerticalAlignment="Top"/>
+        <Label Content="Password" HorizontalAlignment="Left" Margin="557,274,0,0" VerticalAlignment="Top"/>
+        <Label Content="Name" HorizontalAlignment="Left" Margin="557,351,0,0" VerticalAlignment="Top"/>
+        <Label Content="Surname" HorizontalAlignment="Left" Margin="557,512,0,0" VerticalAlignment="Top"/>
+        <Label Content="Description" HorizontalAlignment="Left" Margin="557,435,0,0" VerticalAlignment="Top"/>
+        <TextBox HorizontalAlignment="Left" Margin="557,148,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="557,223,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="557,382,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="557,466,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="557,543,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <Button Content="Sign up" HorizontalAlignment="Left" Margin="570,610,0,0" VerticalAlignment="Top" Height="29" Width="94"/>
+        <PasswordBox HorizontalAlignment="Left" Margin="557,305,0,0" VerticalAlignment="Top" Width="120"/>
+
+    </Grid>
+</UserControl>
