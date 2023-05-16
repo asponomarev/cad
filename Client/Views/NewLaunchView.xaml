@@ -1,0 +1,270 @@
+﻿<Window x:Class="Client.Views.NewLaunchView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client.ViewModels"
+        mc:Ignorable="d"
+        Title="NewLaunchView" Height="768" Width="1024" ResizeMode="CanMinimize">
+    
+    <!--Utility Classes-->
+    <Window.DataContext>
+        <local:NewLaunchViewModel/>
+    </Window.DataContext>
+    
+    <!--Makes RadioButton look like a CheckBox-->
+    <Window.Resources>
+        <Style x:Key="CheckBoxRadioButtonStyle" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid>
+                                <CheckBox IsChecked="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                            </Grid>
+                            <TextBlock Text="{TemplateBinding Content}" />
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    
+    <!--New Launch Window-->
+    <DockPanel>
+        <!--DockPanel Top-->
+        <Border BorderBrush="Black" BorderThickness="0.5" DockPanel.Dock="Top">
+            <!--Замените этот Label на нужную вам плашку-->
+            <Label DockPanel.Dock="Top" HorizontalAlignment="Center" Content="Панель управления (Users | Parameters &#x26; Characteristics | Models | Launches | Compare)"/>
+        </Border>
+        
+        <!--DockPanel Bottom-->
+        <Border BorderBrush="Black" BorderThickness="0.5" DockPanel.Dock="Bottom">
+            <UniformGrid Columns="2">
+                <Button Content="Help to fill in" Margin="100, 10, 100, 10" Click="Help_Button_Click"/>
+                <Button Content="Run launch" Margin="100, 10, 100, 10" Click="Run_Button_Click" IsDefault="True"/>
+            </UniformGrid>
+        </Border>
+
+        <!--DockPanel Left-->
+        <Border BorderBrush="Black" BorderThickness="0.5" DockPanel.Dock="Left">
+            <StackPanel Width="345">
+                <Label Content="Selected Characteristics" HorizontalContentAlignment="Center" Margin="0,5,0,0"/>
+                <DataGrid x:Name="SelectedCharacteristics" Height="290" AutoGenerateColumns="False" ItemsSource="{Binding SelectedCharacteristics}" CanUserAddRows="False" CanUserDeleteRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" SortDirection="Ascending" MinWidth="30" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                        <DataGridCheckBoxColumn Header="IsSelected" Binding="{Binding IsSelected}" Width="*" IsReadOnly="True">
+                            <DataGridCheckBoxColumn.ElementStyle>
+                                <Style TargetType="CheckBox">
+                                    <EventSetter Event="Unchecked" Handler="Characteristic_Unchecked"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.ElementStyle>
+                        </DataGridCheckBoxColumn>
+                        <DataGridTemplateColumn Header="Models" Width="*" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Menu HorizontalAlignment="Left">
+                                        <MenuItem Header="Menu Models" ItemsSource="{Binding DataContext.MenuModels, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">
+                                            <MenuItem.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}"/>
+                                                </DataTemplate>
+                                            </MenuItem.ItemTemplate>
+                                        </MenuItem>
+                                    </Menu>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Label Content="All Characteristics" HorizontalContentAlignment="Center" Margin="0,25,0,0"/>
+                <DataGrid x:Name="AllCharacteristics" Height="290" AutoGenerateColumns="False" ItemsSource="{Binding Characteristics}" CanUserAddRows="False" CanUserDeleteRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" SortDirection="Ascending" MinWidth="30" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                        <DataGridCheckBoxColumn Header="IsSelected" Binding="{Binding IsSelected}" Width="*" IsReadOnly="True">
+                            <DataGridCheckBoxColumn.ElementStyle>
+                                <Style TargetType="CheckBox">
+                                    <EventSetter Event="Checked" Handler="Characteristic_Checked"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.ElementStyle>
+                        </DataGridCheckBoxColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <!--DockPanel Center-->
+        <Border BorderBrush="Black" BorderThickness="0.5">
+            <StackPanel Width="345">
+                <Label Content="Selected Parameters" HorizontalContentAlignment="Center" Margin="0,5,0,0"/>
+                <DataGrid x:Name="SelectedParameters" Height="290" AutoGenerateColumns="False" ItemsSource="{Binding SelectedParameters}" CanUserAddRows="False" CanUserDeleteRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" SortDirection="Ascending" MinWidth="30" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                        <DataGridCheckBoxColumn Header="IsSelected" Binding="{Binding IsSelected}" Width="*" IsReadOnly="True">
+                            <DataGridCheckBoxColumn.ElementStyle>
+                                <Style TargetType="CheckBox">
+                                    <EventSetter Event="Unchecked" Handler="Parameter_Unchecked"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.ElementStyle>
+                        </DataGridCheckBoxColumn>
+                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Label Content="All Parameters" HorizontalContentAlignment="Center" Margin="0,25,0,0"/>
+                <DataGrid x:Name="AllParameters" Height="290" AutoGenerateColumns="False" ItemsSource="{Binding Parameters}" CanUserAddRows="False" CanUserDeleteRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" SortDirection="Ascending" MinWidth="30" IsReadOnly="True"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                        <DataGridCheckBoxColumn Header="IsSelected" Binding="{Binding IsSelected}" Width="*" IsReadOnly="True">
+                            <DataGridCheckBoxColumn.ElementStyle>
+                                <Style TargetType="CheckBox">
+                                    <EventSetter Event="Checked" Handler="Parameter_Checked"/>
+                                </Style>
+                            </DataGridCheckBoxColumn.ElementStyle>
+                        </DataGridCheckBoxColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+        </Border>
+
+        <!--DockPanel Right-->
+        <Border BorderBrush="Black" BorderThickness="0.5" DockPanel.Dock="Right">
+            <StackPanel Width="334">
+                <Label Content="Additional modelling settings" HorizontalContentAlignment="Center" Margin="0,5,0,10"/>
+                <Menu HorizontalAlignment="Center">
+                    <!--<MenuItem Header="Parameter for iteration" ItemsSource="{Binding DataContext.SelectedParameters, RelativeSource={RelativeSource AncestorType={x:Type Window}}}">-->
+                    <MenuItem Header="Parameter for iteration" ItemsSource="{Binding SelectedParameters}">
+                        <MenuItem.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Content="{Binding Name}" GroupName="ParamsForIteration" Style="{StaticResource CheckBoxRadioButtonStyle}"/>
+                            </DataTemplate>
+                        </MenuItem.ItemTemplate>
+                    </MenuItem>
+                </Menu>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,20">
+                    <Label Content="Decision Accuracy" Margin="0,0,25,0"/>
+                    <TextBox x:Name="DecisionAccuracyBox" Width="100" VerticalAlignment="Center" HorizontalAlignment="Right" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Value" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="-100,0,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=DecisionAccuracyBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                
+                <Menu HorizontalAlignment="Center">
+                    <MenuItem Header="Optimization Algorithm">
+                        <RadioButton x:Name="ConstantStep" Content="ConstantStep" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                        <RadioButton x:Name="SmartConstantStep" Content="SmartConstantStep" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                        <RadioButton x:Name="BinarySearch" Content="BinarySearch" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                        <RadioButton x:Name="SmartBinarySearch" Content="SmartBinarySearch" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                        <RadioButton x:Name="GoldenSection" Content="GoldenSection" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                        <RadioButton x:Name="SmartGoldenSection" Content="SmartGoldenSection" Style="{StaticResource CheckBoxRadioButtonStyle}" Checked="RadioButton_Checked" Unchecked="RadioButton_Unchecked"/>
+                    </MenuItem>
+                </Menu>
+
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBox x:Name="StepValue" Visibility="Collapsed" Width="200" VerticalAlignment="Center" Margin="0,10,0,5" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Step Value*" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,-30,0,0" Foreground="DarkGray" >
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Visibility, ElementName=StepValue}" Value="Visible"/>
+                                            <Condition Binding="{Binding Text, ElementName=StepValue}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBox x:Name="MaxFreqOfDataGen" Visibility="Collapsed" Width="200" VerticalAlignment="Center" Margin="0,5,0,5" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Max Frequency of Data Generation*" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,-30,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Visibility, ElementName=MaxFreqOfDataGen}" Value="Visible"/>
+                                            <Condition Binding="{Binding Text, ElementName=MaxFreqOfDataGen}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBox x:Name="NumOfIters" Visibility="Collapsed" Width="200" VerticalAlignment="Center" Margin="0,5,0,5" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Number of Iterations*" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,-30,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Visibility, ElementName=NumOfIters}" Value="Visible"/>
+                                            <Condition Binding="{Binding Text, ElementName=NumOfIters}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBox x:Name="MaxNumOfIters" Visibility="Collapsed" Width="200" VerticalAlignment="Center" Margin="0,5,0,5" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Max Number of Iterations" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,-30,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Visibility, ElementName=MaxNumOfIters}" Value="Visible"/>
+                                            <Condition Binding="{Binding Text, ElementName=MaxNumOfIters}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBox x:Name="Accuracy" Visibility="Collapsed" Width="200" VerticalAlignment="Center" Margin="0,5,0,0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                    <TextBlock IsHitTestVisible="False" Text="Accuracy" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,-20,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Visibility, ElementName=Accuracy}" Value="Visible"/>
+                                            <Condition Binding="{Binding Text, ElementName=Accuracy}" Value=""/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</Window>
