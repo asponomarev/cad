@@ -7,6 +7,8 @@ using System.Configuration;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -32,6 +34,14 @@ namespace Client
         private readonly CalculationServiceProto.CalculationServiceProtoClient _calculationClient;
         private readonly UserServiceProto.UserServiceProtoClient _userServiceClient;
         private readonly ModelsViewModel _modelsViewModel;
+
+        public static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+            }
+        };
 
         public MainWindow()
         {
