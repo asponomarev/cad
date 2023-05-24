@@ -1,5 +1,5 @@
 # UHLNoCSim-SE
-CAD for high-level modeling of networks-on-chip
+CAD for high-level modeling of networks-on-chip  
 Also known as UHLNoCS v3.0
 
 ## Components of CAD solution
