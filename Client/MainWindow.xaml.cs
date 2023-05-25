@@ -67,7 +67,7 @@ namespace Client
 
         private void Characteristics_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new CharacteristicsViewModel();
+            DataContext = new CharacteristicsViewModel(_modelClient);
         }
     }
 }

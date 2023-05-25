@@ -11,15 +11,15 @@
              d:DesignHeight="768" d:DesignWidth="1204">
     <Grid>
 
-        <TextBox Width="200" Height="22" Margin="25,46,740,700"></TextBox>
+        <TextBox Width="200" Height="22" Margin="25,46,740,700" Text="{Binding CharacteristicsModel.IdFilter}"> </TextBox>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="109,21,0,0" TextWrapping="Wrap" Text="Characteristic Id" VerticalAlignment="Top" Width="100"/>
-        <TextBox Width="200" Height="22" Margin="225,46,494,700"/>
+        <TextBox Width="200" Height="22" Margin="225,46,494,700" Text="{Binding CharacteristicsModel.NameFilter}"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="357,21,0,0" TextWrapping="Wrap" Text="Name" VerticalAlignment="Top" Width="44"/>
-        <ComboBox Width="200" Height="22" Margin="352,45,172,699">
-            <TextBlock>Int</TextBlock>
-            <TextBlock>Double</TextBlock>
+        <ComboBox Width="200" Height="22" Margin="352,45,172,699" SelectedItem="{Binding CharacteristicsModel.ValueTypeFilter}">
+            <TextBlock>int</TextBlock>
+            <TextBlock>double</TextBlock>
         </ComboBox>
-        <ComboBox Width="200" Height="22" Margin="580,45,-49,700">
+        <ComboBox Width="200" Height="22" Margin="580,45,-49,700" SelectedItem="{Binding CharacteristicsModel.ModelsFilter}">
             <TextBlock>Booksim</TextBlock>
             <TextBlock>Newxim</TextBlock>
             <TextBlock>DEC9</TextBlock>
@@ -28,23 +28,14 @@
         </ComboBox>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="569,21,0,0" TextWrapping="Wrap" Text="Value Type" VerticalAlignment="Top" Width="88"/>
         <TextBlock HorizontalAlignment="Left" Height="20" Margin="800,21,0,0" TextWrapping="Wrap" Text="Model" VerticalAlignment="Top" Width="66"/>
-        <Button Content="Применить фильтры" Width="130" Height="25" Margin="-20,-550,0,0"></Button>
-        <Line Stroke="Gray" StrokeThickness="1" X1="0" Y1="150" X2="1204" Y2="150"></Line>
+        <Button Content="Применить фильтры" Width="130" Height="25" Margin="-20,-550,0,0" Command="{Binding FilterCharacteristicsCommand}"></Button>
         
-        <TextBox Width="200" Height="22" Margin="25,206,740,540"/>
-        <TextBlock HorizontalAlignment="Left" Height="20" Margin="109,181,740,0" TextWrapping="Wrap" Text="Characteristic Id" VerticalAlignment="Top" Width="100"/>
-        <TextBox Width="200" Height="22" Margin="225,206,494,540"/>
-        <TextBlock HorizontalAlignment="Left" Height="20" Margin="357,181,0,0" TextWrapping="Wrap" Text="Name" VerticalAlignment="Top" Width="44"/>
-        <TextBox Width="200" Height="22" Margin="352,206,172,540"/>
-        <TextBlock HorizontalAlignment="Left" Height="20" Margin="569,181,0,0" TextWrapping="Wrap" Text="Value Type" VerticalAlignment="Top" Width="88"/>
-        <TextBox Width="200" Height="22" Margin="580,206,-49,540"/>
-        <TextBlock HorizontalAlignment="Left" Height="20" Margin="800,181,0,0" TextWrapping="Wrap" Text="Model" VerticalAlignment="Top" Width="66"/>
-        <DataGrid x:Name="characList" ItemsSource="{Binding _characList}" AutoGenerateColumns="False" Margin="0,279,0,0">
+        <DataGrid x:Name="characList" ItemsSource="{Binding CharacteristicsModel.CharacList}" AutoGenerateColumns="False" Margin="0,158,0,0">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Id" Binding="{Binding id}" Width="*"/>
                 <DataGridTextColumn Header="Name" Binding="{Binding name}" Width="*" />
-                <DataGridTextColumn Header="Value Type" Binding="{Binding value}" Width="*" />
-                <DataGridTextColumn Header="Model" Binding="{Binding model}" Width="*" />
+                <DataGridTextColumn Header="Value Type" Binding="{Binding valueType}" Width="*" />
+                <DataGridTextColumn Header="Model" Binding="{Binding models}" Width="*" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

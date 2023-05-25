@@ -14,6 +14,7 @@ using Grpc.Core;
 using System.Text.Json;
 using System.Windows.Controls;
 using System.Windows;
+using System.Collections.ObjectModel;
 //using UhlnocsServer.Models.Properties.Parameters;
 
 namespace Client.ViewModels
@@ -22,7 +23,7 @@ namespace Client.ViewModels
     public class ParametersViewModel
     {
         //Parameters _param = new Parameters(1, "param_name", "int", "booksim");
-        public List<Parameters> _paramList { get; set; } = new()
+        public ObservableCollection<Parameters> _paramList { get; set; } = new()
             {
                 new Parameters(1, "param_name", "int", "booksim"),
                 new Parameters(2, "param_name2", "bool", "newxim"),
