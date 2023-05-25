@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class describes characteristics table in database
     [Table("characteristics_sets")]
     public class CharacteristicsSet : IDisposable
     {

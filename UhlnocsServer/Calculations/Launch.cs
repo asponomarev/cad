@@ -5,6 +5,7 @@ using UhlnocsServer.Users;
 
 namespace UhlnocsServer.Calculations
 {
+    // this class describes launches table in database
     [Table("launches")]
     public class Launch
     {
@@ -26,7 +27,7 @@ namespace UhlnocsServer.Calculations
         public JsonDocument UserParameters { get; set; }  // json with List<string>
 
         [Column("user_characteristics")]
-        public JsonDocument UserCharacteristics { get; set; }  // json with List<string>
+        public JsonDocument UserCharacteristics { get; set; }  // json with List<CharacteristicWithModel>
 
         [Column("optimization_algorithm")]
         public JsonDocument OptimizationAlgorithm { get; set; }  // json with OptimizationAlgorithm

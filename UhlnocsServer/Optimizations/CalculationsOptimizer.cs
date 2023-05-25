@@ -69,7 +69,7 @@ namespace UhlnocsServer.Optimizations
         // for now model performance is calculated as 1 / average calculations duration in ms
         public async Task RecalculateModelPerformance(string modelId)
         {
-            // .Average(c => c.Duration) does not want to work and may be there is a way to make it work
+            // .Average(c => c.Duration) does not want to work because duration is interval in psql
             List<TimeSpan?> modelCalculationsDurations = CalculationsRepository.Get()
                                                             .Where(c => c.ModelId == modelId &&
                                                                         c.ReallyCalculated == true &&
@@ -473,6 +473,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task<Launch> CreateLaunch(string launchId, LaunchConfiguration launchConfiguration)
         {
+            // method that creates launch and logs exceptions if they occur but does not propagate them
             Launch launch = new()
             {
                 Id = launchId,
@@ -480,7 +481,7 @@ namespace UhlnocsServer.Optimizations
                 Description = launchConfiguration.Description,
                 UserId = launchConfiguration.User,
                 UserParameters = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserParameters)),
-                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.UserCharacteristics)),
+                UserCharacteristics = JsonDocument.Parse(JsonSerializer.Serialize(launchConfiguration.Characteristics)),
                 OptimizationAlgorithm = OptimizationAlgorithm.ToJsonDocument(launchConfiguration.OptimizationAlgorithm),
                 RecalculateExisting = launchConfiguration.RecalculateExisting,
                 DssSearchAccuracy = launchConfiguration.DssSearchAccuracy,
@@ -507,6 +508,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task OnLaunchFinished(Launch launch, Task<ModelAndAlgorithmStatuses>[] modelsTasks)
         {
+            // method that updates launch after end of all calculations and logs exceptions if they occur but does not propagate them
             launch.EndTime = DateTime.UtcNow;
             launch.Duration = launch.EndTime - launch.StartTime;
             launch.Status = Launch.GetLaunchStatus(modelsTasks);
@@ -530,6 +532,7 @@ namespace UhlnocsServer.Optimizations
 
         private ModelStatus GetModelStatus(Task<List<CharacteristicValue>>[] calculationsTasks)
         {
+            // this method calculates model status using statuses of calculations
             int totalTasks = 0;
             int completedTasks = 0;
             int failedTasks = 0;
@@ -567,6 +570,7 @@ namespace UhlnocsServer.Optimizations
                                                   List<ParameterValue> parameters,
                                                   Calculation calculation)
         {
+            // this method runs preparer's process
             bool noPreparerError = true;
             try
             {
@@ -600,6 +604,7 @@ namespace UhlnocsServer.Optimizations
                                           string modelFormatCharacteristicsFilePath,
                                           Calculation calculation)
         {
+            // this method run's model process
             bool noModelError = true;
             try
             {
@@ -651,6 +656,7 @@ namespace UhlnocsServer.Optimizations
                                                                              string cadFormatCharacteristicsFilePath,
                                                                              Calculation calculation)
         {
+            // this method runs collector's process
             List<CharacteristicValue> characteristics = null;
             bool noCollectorError = true;
             try
@@ -733,6 +739,7 @@ namespace UhlnocsServer.Optimizations
 
         private CharacteristicsSet? FindCharacteristics(string launchId, string modelId, string parametersHash)
         {
+            // this method tries to find newest characteristics for specified parameters set
             CharacteristicsSet? characteristicsSet = null;
             try
             {
@@ -757,6 +764,7 @@ namespace UhlnocsServer.Optimizations
                                                        string parametersHash, string characteristicsId,
                                                        int iterationIndex)
         {
+            // this method is used for creating calculation if characteristics were found in db and thus no real calculations are needed
             Calculation calculation = new()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -792,6 +800,7 @@ namespace UhlnocsServer.Optimizations
         private async Task<Calculation> CreateRealCalculation(string launchId, string modelId,
                                                               string parametersHash, int iterationIndex)
         {
+            // this method is used for creating calculation if characteristics can not or should not be found in db and real calculations are needed
             Calculation calculation = new()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -827,6 +836,7 @@ namespace UhlnocsServer.Optimizations
 
         private static Process ConfigureProcess(string executableFilePath, string argumentsFormatString, string[] arguments)
         {
+            // this methods helps to configure processes of executable files of different types
             Process process = new();
             process.StartInfo.CreateNoWindow = true;
 
@@ -854,6 +864,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task OnCalculationException(Calculation calculation, Exception exception, string messagePrefix)
         {
+            // this method handles adding information about calculation exceptions to database or log files
             calculation.Message = messagePrefix + Environment.NewLine + ExceptionUtils.GetExceptionMessage(exception);
             calculation.EndTime = DateTime.UtcNow;
             calculation.Duration = calculation.EndTime - calculation.StartTime;
@@ -877,6 +888,7 @@ namespace UhlnocsServer.Optimizations
         private async Task<List<CharacteristicValue>> ReadAndCreateCharacteristics(string characteristicsId,
                                                                                    string cadFormatCharacteristicsFilePath)
         {
+            // this method reads characteristics from file created by collector and creates characteristics object in db
             string characteristicsJson = File.ReadAllText(cadFormatCharacteristicsFilePath);
             JsonDocument characteristicsDocument = JsonDocument.Parse(characteristicsJson);
             List<CharacteristicValue> characteristics = CharacteristicValue.ListFromJsonElement(characteristicsDocument.RootElement);
@@ -899,6 +911,7 @@ namespace UhlnocsServer.Optimizations
 
         private async Task OnCalculationCompleted(Calculation calculation, string characteristicsId)
         {
+            // this method is used for updating info about calculation in db after calculation completion
             calculation.CharacteristicsId = characteristicsId;
             calculation.EndTime = DateTime.UtcNow;
             calculation.Duration = calculation.EndTime - calculation.StartTime;

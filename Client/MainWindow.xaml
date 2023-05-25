@@ -18,13 +18,16 @@
         <DataTemplate x:Name="characteristicsViewTemplate" DataType="{x:Type viewmodels:CharacteristicsViewModel}">
             <views:CharacteristicsView DataContext="{Binding}"/>
         </DataTemplate>
+        <DataTemplate x:Name="modelsViewTemplate" DataType="{x:Type viewmodels:ModelsViewModel}">
+            <views:ModelsView DataContext="{Binding}"/>
+        </DataTemplate>
     </Window.Resources>
     <Grid>
         <Menu Height="20" VerticalAlignment="Top">
             <MenuItem Header="Users" Click="Users_Click"></MenuItem>
             <MenuItem Header="Characteristics" Click="Characteristics_Click"></MenuItem>
             <MenuItem Header="Parameters" Click="Parameters_Click"></MenuItem>
-            <MenuItem Header="Models"></MenuItem>
+            <MenuItem Header="Models" Click="ModelsButton_Click"></MenuItem>
             <MenuItem Header="Launches"></MenuItem>
             <MenuItem Header="Compare"></MenuItem>
         </Menu>

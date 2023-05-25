@@ -5,13 +5,15 @@ option csharp_namespace = "UhlnocsClient";
 package modelProto;
 
 service ModelServiceProto {
-  rpc AddModelConfiguration (ModelConfigurationMessage) returns (ModelEmptyMessage);
+  rpc AddModelConfiguration (ModelConfigurationRequest) returns (ModelEmptyMessage);
 
-  rpc UpdateModelConfiguration (ModelConfigurationMessage) returns (ModelEmptyMessage);
+  rpc UpdateModelConfiguration (ModelConfigurationRequest) returns (ModelEmptyMessage);
 
   rpc DeleteModel (ModelIdRequest) returns (ModelEmptyMessage);
 
-  rpc GetModelConfiguration (ModelIdRequest) returns (ModelConfigurationMessage);
+  rpc GetModelConfiguration (ModelIdRequest) returns (ModelConfigurationReply);
+
+  rpc GetModelsConfigurations (ModelEmptyMessage) returns (ModelsConfigurationsReply);
 
   rpc UploadModelArchive (stream ArchivePartRequest) returns (ModelEmptyMessage);
 
@@ -30,8 +32,17 @@ message ModelIdRequest {
 	string modelId = 1;
 }
 
-message ModelConfigurationMessage {
+message ModelConfigurationRequest {
 	string modelConfigurationJson = 1;
+}
+
+message ModelConfigurationReply {
+	string modelConfigurationJson = 1;
+	double performance = 2;
+}
+
+message ModelsConfigurationsReply {
+	repeated ModelConfigurationReply modelsConfigurationsReplies = 1;
 }
 
 message ArchivePartReply {

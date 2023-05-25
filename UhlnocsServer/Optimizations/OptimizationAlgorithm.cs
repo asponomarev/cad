@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using UhlnocsServer.Calculations;
+using UhlnocsServer.Calculations.LaunchResult;
 using UhlnocsServer.Models.Properties;
 
 namespace UhlnocsServer.Optimizations
@@ -80,6 +81,42 @@ namespace UhlnocsServer.Optimizations
                 originalAlgorithm.ModelsAlgorithmsStatuses.Add(task.Result.ModelId, task.Result.AlgorithmStatus);
             }
             return ToJsonDocument(originalAlgorithm);
+        }
+
+        // TODO: add min and max values to result class
+        public static OptimizationAlgorithmInfo ToInfo(OptimizationAlgorithm algorithm)
+        {
+            if (algorithm is ConstantStep cs)
+            {
+                return new OptimizationAlgorithmInfo(cs.Type, cs.VariableParameter, cs.Step, cs.Iterations, null, null, null);
+            }
+            else if (algorithm is SmartConstantStep scs)
+            {
+                return new OptimizationAlgorithmInfo(scs.Type, scs.VariableParameter, scs.Step, null,
+                                                     scs.MaxIterations, scs.Accuracy, scs.ThroughputCharacteristic);
+            }
+            else if (algorithm is BinarySearch bs)
+            {
+                return new OptimizationAlgorithmInfo(bs.Type, bs.VariableParameter, null, bs.Iterations,
+                                                     null, bs.Accuracy, bs.ThroughputCharacteristic);
+            }
+
+            else if (algorithm is SmartBinarySearch sbs)
+            {
+                return new OptimizationAlgorithmInfo(sbs.Type, sbs.VariableParameter, null, null,
+                                                     sbs.MaxIterations, sbs.Accuracy, sbs.ThroughputCharacteristic);
+            }
+            else if (algorithm is GoldenSection gs)
+            {
+                return new OptimizationAlgorithmInfo(gs.Type, gs.VariableParameter, null, gs.Iterations,
+                                                     null, gs.Accuracy, gs.ThroughputCharacteristic);
+            }
+            else if (algorithm is SmartGoldenSection sgs)
+            {
+                return new OptimizationAlgorithmInfo(sgs.Type, sgs.VariableParameter, null, null,
+                                                     sgs.MaxIterations, sgs.Accuracy, sgs.ThroughputCharacteristic);
+            }
+            return null;  // this should never happen
         }
     }
 }

@@ -7,6 +7,7 @@ namespace UhlnocsServer.Utils
     {
         public static string GetHashCode(string value)
         {
+            // this method creates hash of string value using sha256 algorithm and returns string with hexadecimal representation of hashed data
             var hash = string.Empty;
             using (var hashAlgorithm = SHA256.Create())
             {

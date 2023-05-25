@@ -1,5 +1,6 @@
 ﻿namespace UhlnocsServer.Database
 {
+    // this class implements the most common queries to db
     public class Repository<T> : IRepository<T> where T : class
     {
         public Repository()

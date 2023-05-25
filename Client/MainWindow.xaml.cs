@@ -7,6 +7,8 @@ using System.Configuration;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,20 +33,34 @@ namespace Client
         private readonly ModelServiceProto.ModelServiceProtoClient _modelClient;
         private readonly CalculationServiceProto.CalculationServiceProtoClient _calculationClient;
         private readonly UserServiceProto.UserServiceProtoClient _userServiceClient;
+        private readonly ModelsViewModel _modelsViewModel;
+
+        public static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+            }
+        };
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Get screen size
             var screenWidth = System.Windows.SystemParameters.PrimaryScreenWidth;
             var screenHeight = System.Windows.SystemParameters.PrimaryScreenHeight;
+
+            // Set window size as a percentage of screen size
             this.Width = screenWidth;
-            this.Height = screenHeight;
+            this.Height = screenHeight; // Set aspect ratio as needed
 
             _configuration = CreateConfiguration();
             _channel = CreateGrpcChannel();
             _modelClient = new ModelServiceProto.ModelServiceProtoClient(_channel);
             _calculationClient = new CalculationServiceProto.CalculationServiceProtoClient(_channel);
             _userServiceClient = new UserServiceProto.UserServiceProtoClient(_channel);
+            _modelsViewModel = new ModelsViewModel(_modelClient);
         }
 
         private IConfiguration CreateConfiguration() 
@@ -68,6 +84,11 @@ namespace Client
         private void Characteristics_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new CharacteristicsViewModel(_modelClient);
+        }
+
+        private void ModelsButton_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = _modelsViewModel;
         }
     }
 }
