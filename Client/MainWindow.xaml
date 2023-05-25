@@ -7,7 +7,7 @@
         xmlns:viewmodels="clr-namespace:Client.ViewModels"
         xmlns:views="clr-namespace:Client.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="820" Width="1024">
     <Window.Resources>
         <DataTemplate x:Name="userViewTemplate" DataType="{x:Type viewmodels:UserViewModel}">
             <views:UserView DataContext="{Binding}"/>
@@ -23,13 +23,14 @@
         </DataTemplate>
     </Window.Resources>
     <Grid>
-        <Grid HorizontalAlignment="Center" Height="32" Margin="0,10,0,0" VerticalAlignment="Top" Width="780">
-            <Button x:Name="UsersButton" Content="Users" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" Width="100" Click="UsersButton_Click"/>
-            <Button x:Name="ParametersButton" Content="Parameters" HorizontalAlignment="Left" Margin="140,0,0,0" VerticalAlignment="Center" Width="100" Click="ParametersButton_Click"/>
-            <Button x:Name="CharacteristicsButton" Content="Characteristics" HorizontalAlignment="Left" Margin="260,0,0,0" VerticalAlignment="Center" Width="100" Click="CharacteristicsButton_Click"/>
-            <Button x:Name="ModelsButton" Content="Models" HorizontalAlignment="Left" Margin="380,0,0,0" VerticalAlignment="Center" Width="100" Click="ModelsButton_Click"/>
-        </Grid>
-        <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,47,0,0" VerticalAlignment="Top" Width="1024" Height="768"/>
-
+        <Menu Height="20" VerticalAlignment="Top">
+            <MenuItem Header="Users" Click="Users_Click"></MenuItem>
+            <MenuItem Header="Characteristics" Click="Characteristics_Click"></MenuItem>
+            <MenuItem Header="Parameters" Click="Parameters_Click"></MenuItem>
+            <MenuItem Header="Models" Click="ModelsButton_Click"></MenuItem>
+            <MenuItem Header="Launches"></MenuItem>
+            <MenuItem Header="Compare"></MenuItem>
+        </Menu>
+        <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,25,0,0" VerticalAlignment="Top" Width="1024" Height="768"/>
     </Grid>
 </Window>

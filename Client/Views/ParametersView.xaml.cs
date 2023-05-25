@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Client.Views;
+using Google.Protobuf.Compiler;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,6 +21,7 @@ namespace Client.Views
     /// <summary>
     /// Логика взаимодействия для ParametersView.xaml
     /// </summary>
+    
     public partial class ParametersView : UserControl
     {
         public ParametersView()

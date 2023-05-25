@@ -71,19 +71,19 @@ namespace Client
         private GrpcChannel CreateGrpcChannel() 
             => GrpcChannel.ForAddress(_configuration.GetSection("ServerEndpoint").Value);
 
-        private void UsersButton_Click(object sender, RoutedEventArgs e)
+        private void Users_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new UserViewModel(_userServiceClient, _modelClient);
         }
 
-        private void ParametersButton_Click(object sender, RoutedEventArgs e)
+        private void Parameters_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new ParametersViewModel();
         }
 
-        private void CharacteristicsButton_Click(object sender, RoutedEventArgs e)
+        private void Characteristics_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new CharacteristicsViewModel();
+            DataContext = new CharacteristicsViewModel(_modelClient);
         }
 
         private void ModelsButton_Click(object sender, RoutedEventArgs e)
