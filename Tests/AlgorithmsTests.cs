@@ -68,7 +68,7 @@ namespace Tests
             {
                 _ = smartConstantStep.MakeCalculationParameters(parameters, variableParameterId, iteration);
                 double throughputCharacteristicValue = 1;
-                Status = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                Status = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue, iteration);
                 ++iteration;
                 if (iteration == smartConstantStep.MaxIterations)
                 {

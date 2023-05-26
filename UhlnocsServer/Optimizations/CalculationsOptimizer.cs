@@ -228,7 +228,7 @@ namespace UhlnocsServer.Optimizations
                     else
                     {
                         double throughputCharacteristicValue = CharacteristicValue.GetThroughputValue(calculationCharacteristics, smartConstantStep.ThroughputCharacteristic);
-                        algorithmStatus = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue);
+                        algorithmStatus = smartConstantStep.CheckPointIsGood(throughputCharacteristicValue, iteration);
                     }
                     ++iteration;
                     if (iteration == smartConstantStep.MaxIterations)
