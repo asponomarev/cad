@@ -1,46 +1,46 @@
 ﻿using Client.Models;
+using GalaSoft.MvvmLight.Command;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UhlnocsClient;
-using GalaSoft.MvvmLight.Command;
-using System.Windows.Input;
-//using UhlnocsServer.Models.Properties.Characteristics;
-//using UhlnocsServer.Models.Properties;
-//using Client.Models.ForModelsModel;
-using Grpc.Core;
-using System.Text.Json;
-using System.Windows.Controls;
 using System.Windows;
-using System.Collections.ObjectModel;
-//using UhlnocsServer.Models.Properties.Parameters;
+using System.Windows.Input;
+using UhlnocsClient;
 
 namespace Client.ViewModels
 {
 
     public class ParametersViewModel
     {
-        //Parameters _param = new Parameters(1, "param_name", "int", "booksim");
-        public ObservableCollection<Parameters> _paramList { get; set; } = new()
-            {
-                new Parameters(1, "param_name", "int", "booksim"),
-                new Parameters(2, "param_name2", "bool", "newxim"),
-                new Parameters(3, "param_name3", "double", "topaz"),
-                new Parameters(4, "param_name4", "int", "dec9"),
-                new Parameters(5, "param_name5", "bool", "gpnocsim"),
-                new Parameters(6, "param_name6", "double", "booksim"),
-                new Parameters(7, "param_name7", "bool", "newxim"),
-                new Parameters(8, "param_name8", "double", "topaz"),
-                new Parameters(9, "param_name9", "int", "dec9"),
-                new Parameters(10, "param_name10", "bool", "gpnocsim"),
-                new Parameters(11, "param_name11", "int", "booksim"),
-                new Parameters(12, "param_name12", "bool", "newxim"),
-                new Parameters(13, "param_name13", "double", "topaz"),
-                new Parameters(14, "param_name14", "int", "dec9"),
-                new Parameters(15, "param_name15", "bool", "gpnocsim"),
-            };
+        private readonly ModelServiceProto.ModelServiceProtoClient ModelClient;
 
+        public ICommand FilterParametersCommand { get; private set; }
+        public ParametersModel ParametersModel { get; private set; } = new ParametersModel();
+
+        public ParametersViewModel(ModelServiceProto.ModelServiceProtoClient modelClient)
+        {
+            ModelClient = modelClient;
+            FilterParametersCommand = new RelayCommand(FilterParameters);
+        }
+
+        private async void FilterParameters()
+        {
+            ObservableCollection<ShortParametersInfo> Filtered = new();
+            foreach (var info in ParametersModel.AllParametersList)
+            {
+                if (info.id.Contains(ParametersModel.IdFilter) && !string.IsNullOrEmpty(ParametersModel.IdFilter) ||
+                    info.name.Contains(ParametersModel.NameFilter) && !string.IsNullOrEmpty(ParametersModel.NameFilter) ||
+                    info.valueType == ParametersModel.ValueTypeFilter && !string.IsNullOrEmpty(ParametersModel.ValueTypeFilter) ||
+                    info.models.Contains(ParametersModel.ModelsFilter) && !string.IsNullOrEmpty(ParametersModel.ModelsFilter))
+                {
+                    Filtered.Add(info);
+                }
+            }
+            ParametersModel.ParamList = new(Filtered);
+
+        }
     }
 }

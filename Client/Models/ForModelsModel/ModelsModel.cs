@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using UhlnocsServer.Models.Properties.Characteristics;
+using UhlnocsServer.Models.Properties.Parameters;
 
 namespace Client.Models
 {

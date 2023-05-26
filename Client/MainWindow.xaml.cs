@@ -78,7 +78,7 @@ namespace Client
 
         private void Parameters_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new ParametersViewModel();
+            DataContext = new ParametersViewModel(_modelClient);
         }
 
         private void Characteristics_Click(object sender, RoutedEventArgs e)
