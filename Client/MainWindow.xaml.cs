@@ -90,5 +90,10 @@ namespace Client
         {
             DataContext = _modelsViewModel;
         }
+
+        public static T StringToEnum<T>(string stringEnum)
+        {
+            return (T)Enum.Parse(typeof(T), stringEnum);
+        }
     }
 }

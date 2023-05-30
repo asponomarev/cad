@@ -18,11 +18,29 @@ namespace Client.Models
 
         public ClientModelConfiguration _modelConfiguration { get; set; } = new();
 
-        public List<ShortModelInfo> _shortModelInfos { get; set; } = new();
+        private ObservableCollection<ShortModelInfo> _shortModelInfos { get; set; } = new();
+
+        public ObservableCollection<ShortModelInfo> ShortModelInfos
+        {
+            get { return _shortModelInfos; }
+            set
+            {
+                _shortModelInfos = value;
+                OnPropertyChanged(nameof(ShortModelInfos));
+            }
+        }
 
         public ShortModelInfo _modelsFilter { get; set; }
 
-        public List<string> _options { get; set; } = new();
+        //public List<string> _options { get; set; } = new();
+
+        public ModelsModel()
+        {
+            _modelsFilter = new(string.Empty, string.Empty);
+            AddAllModelInfos();
+            
+        }
+
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -32,6 +50,17 @@ namespace Client.Models
             {
                 PropertyChanged(this, new PropertyChangedEventArgs(prop));
             }
+        }
+
+
+        private void AddAllModelInfos()
+        {
+            ObservableCollection<ShortModelInfo> All = new();
+            foreach (var configuration in ModelsModel._modelConfigurations.Values)
+            {
+                All.Add(new(configuration.Id, configuration.Name));
+            }
+            ShortModelInfos = new(All);
         }
     }
 }
