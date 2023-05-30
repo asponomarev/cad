@@ -13,6 +13,8 @@ using Client.Models.ForModelsModel;
 using Grpc.Core;
 using System.Text.Json;
 using UhlnocsServer.Models.Properties.Parameters;
+using System.Collections.ObjectModel;
+using UhlnocsServer.Models;
 
 namespace Client.ViewModels
 {
@@ -20,51 +22,84 @@ namespace Client.ViewModels
     {
         public ModelsModel _modelsModel { get; set; }
         public ICommand GetCharacteristicsCommand { get; private set; }
+        public ICommand FilterModelsCommand { get; private set; }
+
         private readonly ModelServiceProto.ModelServiceProtoClient _modelClient;
 
         public ModelsViewModel(ModelServiceProto.ModelServiceProtoClient modelClient)
         {
             _modelClient = modelClient;
+            InitializeDictionaries();
             _modelsModel = new ModelsModel();
             GetCharacteristicsCommand = new RelayCommand(GetCharacteristicsMethod);
-            GetCharacteristicsMethod();
-            InitializeDictionaries();
+            FilterModelsCommand = new RelayCommand(FilterModelsMethod);
             //ClientCharacteristicsGrid.ItemsSource = _modelsModel.Characteristics;
+        }
+
+        private void FilterModelsMethod()
+        {
+            ObservableCollection<ShortModelInfo> Filtered = new();
+            foreach (var configuration in ModelsModel._modelConfigurations.Values)
+            {
+                if (configuration.Id.Contains(_modelsModel._modelsFilter.Id) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) ||
+                    configuration.Name.Contains(_modelsModel._modelsFilter.Name) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Name) ||
+                    string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) && string.IsNullOrEmpty(_modelsModel._modelsFilter.Name))
+                {
+                    Filtered.Add(new(configuration.Id, configuration.Name));
+                }
+            }
+            _modelsModel.ShortModelInfos = new(Filtered);
+        }
+
+        private void GetCharacteristicsMethod()
+        {
+            /*ObservableCollection<ClientCharacteristicInfo> Filtered = new();
+            foreach (var configuration in ModelsModel._modelConfigurations.Values)
+            {
+                if (configuration.Id.Contains(_modelsModel._modelsFilter.Id) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) ||
+                    configuration.Name.Contains(_modelsModel._modelsFilter.Name) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Name) ||
+                    string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) && string.IsNullOrEmpty(_modelsModel._modelsFilter.Name))
+                {
+                    Filtered.Add(new(configuration.Id, configuration.Name));
+                }
+            }*/
+            //_modelsModel._modelConfiguration.Characteristics = new(ClientCharacteristicInfo());
+            //ObservableCollection<ClientCharacteristicInfo> characteristicInfos = new();
+            _modelsModel._modelConfiguration.Characteristics.Add(new(null, null, null, null)) ;
         }
 
         private async void InitializeDictionaries()
         {
+            //ModelsModel._modelConfigurations.Add( "k1", new("k1", "n1", null, null, 0, null, null, 0, null, 0, true, 0, null, null, null));
+            //ModelsModel._modelConfigurations.Add("k2", new("k2", "n2", null, null, 0, null, null, 0, null, 0, true, 0, null, null, null));
             try
             {
                 Metadata requestHeader = new();
                 requestHeader.Add("user", "id");
 
                 var parametersReply = await _modelClient.GetParametersWithModelsAsync(new ModelEmptyMessage(), requestHeader);
-                ModelsModel._parametersWithModels = JsonSerializer.Deserialize<Dictionary<string, ParameterWithModels>> (parametersReply.ParametersWithModelsJson, MainWindow.SerializerOptions);
-                _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("123!!!!!!!!", "name", "dsdf", PropertyValueType.Int));
+                ModelsModel._parametersWithModels = JsonSerializer.Deserialize<Dictionary<string, ParameterWithModels>>(parametersReply.ParametersWithModelsJson, MainWindow.SerializerOptions);
+                
+                var characteristicsReply = await _modelClient.GetCharacteristicsWithModelsAsync(new ModelEmptyMessage(), requestHeader);
+                ModelsModel._characteristicsWithModels = JsonSerializer.Deserialize<Dictionary<string, CharacteristicWithModels>>(characteristicsReply.CharacteristicsWithModelsJson, MainWindow.SerializerOptions);
+                
+                var modelsReply = await _modelClient.GetModelsConfigurationsAsync(new ModelEmptyMessage(), requestHeader);
+                foreach(var modelReply in modelsReply.ModelsConfigurationsReplies)
+                {
+                    JsonDocument document = JsonDocument.Parse(modelReply.ModelConfigurationJson);
+                    ModelConfiguration serverConfiguration = ModelConfiguration.FromJsonDocument(document);
+                    ClientModelConfiguration clientConfiguration = ClientModelConfiguration.FromServerModelConfiguration(serverConfiguration, modelReply.Performance);
+                    ModelsModel._modelConfigurations.Add(clientConfiguration.Id, clientConfiguration);
+                }
+                
             }
             catch (Exception ex)
             {
-                _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("123------", "name", "dsdf", PropertyValueType.Int));
+                // Make notification
             }
         }
 
-        private void GetCharacteristicsMethod()
-        {
-            _modelsModel._options.Add("true");
-            _modelsModel._options.Add("false");
-            _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("123", "name", "dsdf", PropertyValueType.Int));
-            _modelsModel._modelConfiguration._characteristics.Add(new ClientCharacteristicInfo("1jh23", "name", "dsdf", PropertyValueType.Int));
-            /*try
-            {
-                var result = await _modelClient.DeleteModelAsync(new ModelIdRequest() { ModelId = "testId" });
-                Dummy.RequetResult = "Ok";
-            }
-            catch (Exception ex)
-            {
-                Dummy.RequetResult = ex.Message;
-            }*/
-        }
+        
 
 
 
