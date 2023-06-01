@@ -1,38 +1,23 @@
 ﻿using Client.Models;
-using GalaSoft.MvvmLight.Command;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using UhlnocsClient;
+using System.Windows;
 
 namespace Client.ViewModels
 {
     public class UserViewModel
     {
-        private readonly UserServiceProto.UserServiceProtoClient _userServiceClient;
-        private readonly ModelServiceProto.ModelServiceProtoClient _modelClient;
-
-        public UserViewModel(UserServiceProto.UserServiceProtoClient userServiceClient, ModelServiceProto.ModelServiceProtoClient modelClient)
+        public List<Users> _characList { get; set; } = new()
         {
-            _userServiceClient = userServiceClient;
-            _modelClient = modelClient;
-            DummyCommand = new RelayCommand(DummyMethod);
-        }
+            new Users("qwerty1", "name1", "surname1", "email1", "description"),
+            new Users("qwerty2", "name2", "surname2", "email2", "description"),
+            new Users("qwerty3", "name3", "surname3", "email3", "description"),
+            new Users("qwerty4", "name4", "surname4", "email4", "description"),
+            new Users("qwerty5", "name5", "surname5", "email5", "description"),
+        };
 
-        public ICommand DummyCommand { get; private set; }
-        public DummyModel Dummy { get; private set; } = new DummyModel();
-
-        private async void DummyMethod()
-        {
-            try
-            {
-                var result = await _modelClient.DeleteModelAsync(new ModelIdRequest() { ModelId = "testId" });
-                Dummy.RequetResult = "Ok";
-            }
-            catch (Exception ex)
-            {
-                Dummy.RequetResult = ex.Message;
-            }
-        }
     }
 }

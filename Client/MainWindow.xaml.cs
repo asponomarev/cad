@@ -78,7 +78,12 @@ namespace Client
 
         private void Parameters_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new ParametersViewModel();
+            DataContext = new UserViewModel();
+        }
+
+        private void Sign_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = new SignViewModel();
         }
 
         private void Characteristics_Click(object sender, RoutedEventArgs e)
@@ -86,9 +91,9 @@ namespace Client
             DataContext = new CharacteristicsViewModel(_modelClient);
         }
 
-        private void ModelsButton_Click(object sender, RoutedEventArgs e)
+        private void LaunchResult_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = _modelsViewModel;
+            DataContext = new LaunchResultViewModel();
         }
 
         public static T StringToEnum<T>(string stringEnum)

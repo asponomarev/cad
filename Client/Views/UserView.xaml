@@ -5,12 +5,31 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Client.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    
-    <Grid>
-        <Button Content="DummyButton" HorizontalAlignment="Left" Height="72" Margin="324,174,0,0" VerticalAlignment="Top" Width="110" Command="{Binding DummyCommand}"/>
-        <TextBlock x:Name="MyTextBlock" HorizontalAlignment="Center" Margin="0,115,0,0" TextWrapping="Wrap" Text="{Binding Dummy.RequetResult}" VerticalAlignment="Top" Height="38" Width="220"/>
-        <TextBlock HorizontalAlignment="Left" Margin="318,269,0,0" TextWrapping="Wrap" Text="User test text" VerticalAlignment="Top" Height="73" Width="122"/>
+             d:DesignHeight="1024" d:DesignWidth="767">
 
+    <Grid>
+
+        <TextBox HorizontalAlignment="Left" Margin="46,116,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+
+        <Label Content="Password" HorizontalAlignment="Left" Margin="44,146,0,0" VerticalAlignment="Top"/>
+        <Label Content="Email" HorizontalAlignment="Left" Margin="46,90,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.509,0.559"/>
+        <PasswordBox HorizontalAlignment="Left" Margin="46,177,0,0" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Name" HorizontalAlignment="Left" Margin="46,210,0,0" VerticalAlignment="Top"/>
+        <Label Content="Surname" HorizontalAlignment="Left" Margin="45,300,0,0" VerticalAlignment="Top"/>
+        <Label Content="Description" HorizontalAlignment="Left" Margin="46,368,0,0" VerticalAlignment="Top"/>
+        <TextBox HorizontalAlignment="Left" Margin="46,241,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="44,331,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <TextBox HorizontalAlignment="Left" Margin="46,399,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+        <Button Content="Update info" HorizontalAlignment="Left" Margin="65,463,0,0" VerticalAlignment="Top" Height="33" Width="76"/>
+
+        <DataGrid x:Name="ClientUsersGrid" ItemsSource="{Binding _characList}"  AutoGenerateColumns="False" CanUserAddRows="True" Margin="252,103,83,281">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Nickname" Binding="{Binding _nickname}" />
+                <DataGridTextColumn Header="Name" Binding="{Binding _name}" />
+                <DataGridTextColumn Header="Surname" Binding="{Binding _surname}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <Label Content="Nickname" HorizontalAlignment="Left" Margin="45,29,0,0" VerticalAlignment="Top"/>
+        <TextBox HorizontalAlignment="Left" Margin="46,55,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
     </Grid>
 </UserControl>

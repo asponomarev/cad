@@ -12,23 +12,24 @@
         <DataTemplate x:Name="userViewTemplate" DataType="{x:Type viewmodels:UserViewModel}">
             <views:UserView DataContext="{Binding}"/>
         </DataTemplate>
-        <DataTemplate x:Name="parametersViewTemplate" DataType="{x:Type viewmodels:ParametersViewModel}">
-            <views:ParametersView DataContext="{Binding}"/>
+        <DataTemplate x:Name="LaunchResultViewTemplate" DataType="{x:Type viewmodels:LaunchResultViewModel}">
+            <views:LaunchResultView DataContext="{Binding}"/>
         </DataTemplate>
-        <DataTemplate x:Name="characteristicsViewTemplate" DataType="{x:Type viewmodels:CharacteristicsViewModel}">
-            <views:CharacteristicsView DataContext="{Binding}"/>
+
+        <DataTemplate x:Name="SignViewTemplate" DataType="{x:Type viewmodels:SignViewModel}">
+            <views:SignView DataContext="{Binding}"/>
         </DataTemplate>
-        <DataTemplate x:Name="modelsViewTemplate" DataType="{x:Type viewmodels:ModelsViewModel}">
-            <views:ModelsView DataContext="{Binding}"/>
-        </DataTemplate>
+        
     </Window.Resources>
     <Grid>
         <Menu Height="20" VerticalAlignment="Top">
             <MenuItem Header="Users" Click="Users_Click"></MenuItem>
+            <MenuItem Header="Sign up" Click="Sign_Click"></MenuItem>
             <MenuItem Header="Characteristics" Click="Characteristics_Click"></MenuItem>
             <MenuItem Header="Parameters" Click="Parameters_Click"></MenuItem>
             <MenuItem Header="Models" Click="ModelsButton_Click"></MenuItem>
             <MenuItem Header="Launches"></MenuItem>
+            <MenuItem Header="Launch Result" Click="LaunchResult_Click"></MenuItem>
             <MenuItem Header="Compare"></MenuItem>
         </Menu>
         <ContentControl Content="{Binding}" HorizontalAlignment="Center" Margin="0,25,0,0" VerticalAlignment="Top" Width="1024" Height="768"/>
