@@ -1,5 +1,6 @@
-# UHLNoCS v3.0
-CAD for high-level modeling of networks-on-chip
+# UHLNoCSim-SE
+CAD for high-level modeling of networks-on-chip  
+Also known as UHLNoCS v3.0
 
 ## Components of CAD solution
 - server application
@@ -44,7 +45,7 @@ Archives with latest versions of some integrated models can be found [here](http
 
 ## Documentation, papers and other materials
 Diplomas:
-- about CAD architecture TODO: add link
+- about [CAD architecture](https://drive.google.com/file/d/1JL6JKrYjSQ8nriAAFtOeP8ZxeE4InqM4/view?usp=drive_link)
 - about DSS module TODO: add link
 - about Optimization module TODO: add link
 

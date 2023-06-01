@@ -1,5 +1,6 @@
 ﻿using UhlnocsServer.Models.Properties.Parameters.Values;
 using UhlnocsServer.Models.Properties.Parameters;
+using Microsoft.VisualBasic;
 
 namespace UhlnocsServer.Optimizations
 {
@@ -47,8 +48,15 @@ namespace UhlnocsServer.Optimizations
             return calculationParameters;
         }
 
-        public AlgorithmStatus CheckPointIsGood(double throughput)
+        public AlgorithmStatus CheckPointIsGood(double throughput, int iteration)
         {
+            if (iteration == 0)
+            {
+                if (IsPointGood(CurrentRate, throughput, Accuracy) == false)
+                {
+                    return AlgorithmStatus.FirstPointIsBad;
+                }
+            }
             if (IsPointGood(CurrentRate, throughput, Accuracy))
             {
                 return AlgorithmStatus.Calculating;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Client.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -27,6 +28,7 @@ namespace Client.Views
         public ModelsView()
         {
             InitializeComponent();
+            /*DataContext = new ViewModels.ModelsViewModel();*/
             //ClientCharacteristicsGrid.ItemsSource = _modelsModel.Characteristics;
 
             /*Orders.Add(new Order { OrderNumber = 1, CustomerName = "John Doe", OrderDate = DateTime.Today });

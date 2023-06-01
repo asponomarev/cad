@@ -7,6 +7,8 @@ using System.Configuration;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -32,6 +34,14 @@ namespace Client
         private readonly CalculationServiceProto.CalculationServiceProtoClient _calculationClient;
         private readonly UserServiceProto.UserServiceProtoClient _userServiceClient;
         private readonly ModelsViewModel _modelsViewModel;
+
+        public static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            Converters =
+            {
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+            }
+        };
 
         public MainWindow()
         {
@@ -61,9 +71,12 @@ namespace Client
         private GrpcChannel CreateGrpcChannel() 
             => GrpcChannel.ForAddress(_configuration.GetSection("ServerEndpoint").Value);
 
-        
-
         private void Users_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = new UserViewModel(_userServiceClient, _modelClient);
+        }
+
+        private void Parameters_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new UserViewModel();
         }
@@ -73,9 +86,19 @@ namespace Client
             DataContext = new SignViewModel();
         }
 
+        private void Characteristics_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = new CharacteristicsViewModel(_modelClient);
+        }
+
         private void LaunchResult_Click(object sender, RoutedEventArgs e)
         {
             DataContext = new LaunchResultViewModel();
+        }
+
+        public static T StringToEnum<T>(string stringEnum)
+        {
+            return (T)Enum.Parse(typeof(T), stringEnum);
         }
     }
 }

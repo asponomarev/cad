@@ -26,7 +26,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -43,7 +42,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -60,7 +58,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -77,7 +74,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -94,7 +90,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model6"),
                         new CharacteristicWithModel("Id3", "Model7")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -111,7 +106,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -128,7 +122,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -145,7 +138,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -162,7 +154,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
@@ -179,7 +170,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep( "", "", 0, 0, 0),
                     true,
                     0.9
@@ -196,7 +186,6 @@ namespace Tests
                         new CharacteristicWithModel("Id2", "Model2"),
                         new CharacteristicWithModel("Id3", "Model3")
                     },
-                    new List<string>() { "UserChar1", "UserChar2", "UserChar3" },
                     new SmartConstantStep("", "", 0, 0, 0),
                     true,
                     0.9
