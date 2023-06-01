@@ -96,6 +96,11 @@ namespace Client
             DataContext = new LaunchResultViewModel();
         }
 
+        private void Models_Click(object sender, RoutedEventArgs e)
+        {
+            DataContext = _modelsViewModel;
+        }
+
         public static T StringToEnum<T>(string stringEnum)
         {
             return (T)Enum.Parse(typeof(T), stringEnum);

@@ -15,7 +15,9 @@
         <DataTemplate x:Name="LaunchResultViewTemplate" DataType="{x:Type viewmodels:LaunchResultViewModel}">
             <views:LaunchResultView DataContext="{Binding}"/>
         </DataTemplate>
-
+        <DataTemplate x:Name="ModelsViewTemplate" DataType="{x:Type viewmodels:ModelsViewModel}">
+            <views:ModelsView DataContext="{Binding}"/>
+        </DataTemplate>
         <DataTemplate x:Name="SignViewTemplate" DataType="{x:Type viewmodels:SignViewModel}">
             <views:SignView DataContext="{Binding}"/>
         </DataTemplate>
@@ -27,7 +29,7 @@
             <MenuItem Header="Sign up" Click="Sign_Click"></MenuItem>
             <MenuItem Header="Characteristics" Click="Characteristics_Click"></MenuItem>
             <MenuItem Header="Parameters" Click="Parameters_Click"></MenuItem>
-            <MenuItem Header="Models"></MenuItem>
+            <MenuItem Header="Models" Click="Models_Click"></MenuItem>
             <MenuItem Header="Launches"></MenuItem>
             <MenuItem Header="Launch Result" Click="LaunchResult_Click"></MenuItem>
             <MenuItem Header="Compare"></MenuItem>
