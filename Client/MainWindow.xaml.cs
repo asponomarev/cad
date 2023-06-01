@@ -73,7 +73,7 @@ namespace Client
 
         private void Users_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new UserViewModel(_userServiceClient, _modelClient);
+            DataContext = new UserViewModel();
         }
 
         private void Parameters_Click(object sender, RoutedEventArgs e)

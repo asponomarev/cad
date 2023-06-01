@@ -27,7 +27,7 @@
             <MenuItem Header="Sign up" Click="Sign_Click"></MenuItem>
             <MenuItem Header="Characteristics" Click="Characteristics_Click"></MenuItem>
             <MenuItem Header="Parameters" Click="Parameters_Click"></MenuItem>
-            <MenuItem Header="Models" Click="ModelsButton_Click"></MenuItem>
+            <MenuItem Header="Models"></MenuItem>
             <MenuItem Header="Launches"></MenuItem>
             <MenuItem Header="Launch Result" Click="LaunchResult_Click"></MenuItem>
             <MenuItem Header="Compare"></MenuItem>
