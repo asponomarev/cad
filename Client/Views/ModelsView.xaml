@@ -67,7 +67,7 @@
 
 
                 <Button x:Name="AddParameterButton" Content="     Add&#xA;Parameter"
-                        HorizontalAlignment="Left" Margin="755,81,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" RenderTransformOrigin="0.125,0.586" Grid.ColumnSpan="2"/>
+                        HorizontalAlignment="Left" Margin="755,81,0,0" VerticalAlignment="Top" Height="40" Width="80" FontSize="10" RenderTransformOrigin="0.125,0.586" Grid.ColumnSpan="2" Command="{Binding AddParametersCommand}"/>
                 <DataGrid x:Name="DGParameters" ItemsSource="{Binding _modelsModel._modelConfiguration.Parameters}" AutoGenerateColumns="False" Width="750" Margin="0,0,95,0" Height="210">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="value type" Binding="{Binding ValueType}" Width="*" />
@@ -98,7 +98,7 @@
                     </DataGrid.Columns>
 
                 </DataGrid>
-                <Button x:Name="AddCharacteristicButton" Content="       Add&#xA;Characteristic" HorizontalContentAlignment="Center" HorizontalAlignment="Left" Margin="755,0,0,0" VerticalAlignment="Center" Width="80" Height="40" FontSize="10" Command="{Binding GetCharacteristicsCommand}"/>
+                <Button x:Name="AddCharacteristicButton" Content="       Add&#xA;Characteristic" HorizontalContentAlignment="Center" HorizontalAlignment="Left" Margin="755,0,0,0" VerticalAlignment="Center" Width="80" Height="40" FontSize="10" Command="{Binding AddCharacteristicsCommand}"/>
 
             </Grid>
 

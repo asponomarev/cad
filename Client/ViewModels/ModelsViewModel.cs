@@ -21,7 +21,8 @@ namespace Client.ViewModels
     public class ModelsViewModel
     {
         public ModelsModel _modelsModel { get; set; }
-        public ICommand GetCharacteristicsCommand { get; private set; }
+        public ICommand AddCharacteristicsCommand { get; private set; }
+        public ICommand AddParametersCommand { get; private set; }
         public ICommand FilterModelsCommand { get; private set; }
 
         private readonly ModelServiceProto.ModelServiceProtoClient _modelClient;
@@ -31,9 +32,9 @@ namespace Client.ViewModels
             _modelClient = modelClient;
             InitializeDictionaries();
             _modelsModel = new ModelsModel();
-            GetCharacteristicsCommand = new RelayCommand(GetCharacteristicsMethod);
+            AddCharacteristicsCommand = new RelayCommand(AddCharacteristicsMethod);
+            AddParametersCommand = new RelayCommand(AddParametersMethod);
             FilterModelsCommand = new RelayCommand(FilterModelsMethod);
-            //ClientCharacteristicsGrid.ItemsSource = _modelsModel.Characteristics;
         }
 
         private void FilterModelsMethod()
@@ -51,27 +52,18 @@ namespace Client.ViewModels
             _modelsModel.ShortModelInfos = new(Filtered);
         }
 
-        private void GetCharacteristicsMethod()
+        private void AddCharacteristicsMethod()
         {
-            /*ObservableCollection<ClientCharacteristicInfo> Filtered = new();
-            foreach (var configuration in ModelsModel._modelConfigurations.Values)
-            {
-                if (configuration.Id.Contains(_modelsModel._modelsFilter.Id) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) ||
-                    configuration.Name.Contains(_modelsModel._modelsFilter.Name) && !string.IsNullOrEmpty(_modelsModel._modelsFilter.Name) ||
-                    string.IsNullOrEmpty(_modelsModel._modelsFilter.Id) && string.IsNullOrEmpty(_modelsModel._modelsFilter.Name))
-                {
-                    Filtered.Add(new(configuration.Id, configuration.Name));
-                }
-            }*/
-            //_modelsModel._modelConfiguration.Characteristics = new(ClientCharacteristicInfo());
-            //ObservableCollection<ClientCharacteristicInfo> characteristicInfos = new();
             _modelsModel._modelConfiguration.Characteristics.Add(new(null, null, null, null)) ;
+        }
+
+        private void AddParametersMethod()
+        {
+            _modelsModel._modelConfiguration.Parameters.Add(new(null, null, null, null, null, null, null, null));
         }
 
         private async void InitializeDictionaries()
         {
-            //ModelsModel._modelConfigurations.Add( "k1", new("k1", "n1", null, null, 0, null, null, 0, null, 0, true, 0, null, null, null));
-            //ModelsModel._modelConfigurations.Add("k2", new("k2", "n2", null, null, 0, null, null, 0, null, 0, true, 0, null, null, null));
             try
             {
                 Metadata requestHeader = new();
@@ -98,10 +90,5 @@ namespace Client.ViewModels
                 // Make notification
             }
         }
-
-        
-
-
-
     }
 }
