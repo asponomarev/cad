@@ -78,7 +78,7 @@ namespace Client
 
         private void Parameters_Click(object sender, RoutedEventArgs e)
         {
-            DataContext = new UserViewModel();
+            DataContext = new ParametersViewModel();
         }
 
         private void Sign_Click(object sender, RoutedEventArgs e)

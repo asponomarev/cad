@@ -21,7 +21,12 @@
         <DataTemplate x:Name="SignViewTemplate" DataType="{x:Type viewmodels:SignViewModel}">
             <views:SignView DataContext="{Binding}"/>
         </DataTemplate>
-        
+        <DataTemplate x:Name="parametersViewTemplate" DataType="{x:Type viewmodels:ParametersViewModel}">
+            <views:ParametersView DataContext="{Binding}"/>
+        </DataTemplate>
+        <DataTemplate x:Name="characteristicsViewTemplate" DataType="{x:Type viewmodels:CharacteristicsViewModel}">
+            <views:CharacteristicsView DataContext="{Binding}"/>
+        </DataTemplate>
     </Window.Resources>
     <Grid>
         <Menu Height="20" VerticalAlignment="Top">
